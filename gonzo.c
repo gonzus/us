@@ -1,5 +1,6 @@
 #include "cell.h"
 #include "env.h"
+#include "parser.h"
 
 static void test_nil(void)
 {
@@ -76,6 +77,19 @@ static void test_symbol(void)
     }
 }
 
+static void test_parse(void)
+{
+    const char* code;
+
+    code = "(define fact (lambda x (if (< x 2) 1 (* x (fact (- x 1))))))";
+    printf("Parsing [%s]:\n", code);
+    parse(code);
+
+    code = "(define (sum n) (if (zero? n) 0 (+ n (sum (sub1 n)))))";
+    printf("Parsing [%s]:\n", code);
+    parse(code);
+}
+
 int main(int argc, char* argv[])
 {
     test_nil();
@@ -84,6 +98,7 @@ int main(int argc, char* argv[])
     test_nested_list();
     test_dotted();
     test_symbol();
+    test_parse();
 
     return 0;
 }
