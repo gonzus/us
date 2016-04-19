@@ -2,6 +2,7 @@ first: all
 
 CFLAGS += -g
 CFLAGS += -I.
+CFLAGS += -Wall -Werror
 
 cell.o: cell.c
 env.o: env.c
