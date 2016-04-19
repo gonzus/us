@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <stdio.h>
+#include "cell.h"
 #include "parser.h"
 
 // Possible states for our parser; it starts in STATE_NORMAL
@@ -153,7 +154,18 @@ int parse(const char* str)
     return state;
 }
 
-// For now we just print the token we recognized
+typedef struct Level {
+    Cell* frst;
+    Cell* last;
+} Level;
+
+typedef struct Parser {
+    Level level[128];
+    int pos;
+} Parser;
+
+static Parser parser;
+
 int token(const char* str, int token, int beg, int end)
 {
     static const char* Token[TOKEN_LAST] = {
@@ -164,7 +176,55 @@ int token(const char* str, int token, int beg, int end)
         "TOKEN_LPAREN",
         "TOKEN_RPAREN",
     };
+    const char* tok = str + beg;;
     int len = end - beg;
-    printf("%-15.15s: [%*.*s]\n", Token[token], len, len, str + beg);
+    printf("%-15.15s: [%*.*s]\n", Token[token], len, len, tok);
+    fflush(stdout);
+
+    Level* level = &parser.level[parser.pos];
+    Cell* cell = 0;
+    switch (token) {
+        case TOKEN_NUMBER:
+            cell = cell_create_int_from_string(tok, len);
+            break;
+
+        case TOKEN_STRING:
+            cell = cell_create_string(tok, len);
+            break;
+
+        case TOKEN_SYMBOL:
+            cell = cell_create_symbol(tok, len);
+            break;
+
+        case TOKEN_LPAREN:
+            ++parser.pos;
+            level->frst = 0;
+            level->last = 0;
+            break;
+
+        case TOKEN_RPAREN:
+            level->frst = 0;
+            level->last = 0;
+            --parser.pos;
+            break;
+
+        case TOKEN_NONE:
+        default:
+            break;
+    }
+    if (cell) {
+        cell = cell_cons(cell, nil);
+        if (!level->frst) {
+            level->frst = cell;
+        }
+        if (!level->last) {
+            level->last = cell;
+        }
+        else {
+            level->last->cons.cdr = cell;
+            level->last = cell;
+        }
+    }
+
     return 0;
 }
