@@ -1,10 +1,9 @@
-/*
- * An environment is a hash table that stores associations of name => value.
- * It also can have a parent environment.
- * When names hash to the same bucket, use a singly linked list.
- */
 #ifndef ENV_H_
 #define ENV_H_
+
+// An environment is a hash table that stores associations of name => value.
+// It also can have a parent environment.
+// When names hash to the same bucket, use a singly linked list.
 
 #define ENV_DEFAULT_SIZE 1021
 

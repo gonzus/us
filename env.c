@@ -29,15 +29,13 @@ Env* env_create(int size, Env* parent)
     return env;
 }
 
-/*
- * I've had nice results with djb2 by Dan Bernstein.
- */
+// I've had nice results with djb2 by Dan Bernstein.
 static unsigned long hash(const char* str)
 {
     unsigned long hash = 5381;
     int c;
     while ((c = *str++)) {
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
     }
     return hash;
 }

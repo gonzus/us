@@ -1,15 +1,14 @@
-/*
- * A struct Cell stores any possible value (integer, conses, others)
- * using a union.
- *
- * In particular, it supports values of type cons.
- *
- * WARNING: we are not doing any kind of memory management.
- * This thing leaks like a boat made of hay.
- * Need to decide wether we will use ref counting or GC.
- */
 #ifndef CELL_H_
 #define CELL_H_
+
+// A struct Cell stores any possible value (integer, conses, others)
+// using a union.
+//
+// In particular, it supports values of type cons.
+//
+// WARNING: we are not doing any kind of memory management.
+// This thing leaks like a boat made of hay.
+// Need to decide wether we will use ref counting or GC.
 
 #include <stdio.h>
 
