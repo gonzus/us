@@ -79,15 +79,18 @@ static void test_symbol(void)
 
 static void test_parse(void)
 {
-    const char* code;
+    static struct {
+        const char* code;
+    } data[] = {
+        { "(define fact (lambda x (if (< x 2) 1 (* x (fact (- x 1))))))" },
+        { "(define (sum n) (if (zero? n) 0 (+ n (sum (sub1 n)))))"       },
+    };
 
-    code = "(define fact (lambda x (if (< x 2) 1 (* x (fact (- x 1))))))";
-    printf("Parsing [%s]:\n", code);
-    parse(code);
-
-    code = "(define (sum n) (if (zero? n) 0 (+ n (sum (sub1 n)))))";
-    printf("Parsing [%s]:\n", code);
-    parse(code);
+    for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
+        const char* code = data[j].code;
+        printf("Parsing [%s]:\n", code);
+        parse(code);
+    }
 }
 
 int main(int argc, char* argv[])
