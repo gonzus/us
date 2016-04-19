@@ -107,6 +107,19 @@ Cell* cell_create_string(const char* value, int len)
     return cell;
 }
 
+Cell* cell_create_symbol(const char* value, int len)
+{
+    Cell* cell = (Cell*) malloc(sizeof(Cell));
+    cell->tag = CELL_SYMBOL;
+
+    len = get_length(value, len);
+    cell->sval = malloc(len + 1);
+    memcpy(cell->sval, value ? value : "", len);
+    cell->sval[len] = '\0';
+
+    return cell;
+}
+
 
 // TODO: these three functions (and maybe others) should do
 // some checking for their args...
@@ -142,6 +155,10 @@ static void cell_print_all(const Cell* cell, FILE* fp)
 
         case CELL_STRING:
             fprintf(fp, "\"%s\"", cell->sval);
+            break;
+
+        case CELL_SYMBOL:
+            fprintf(fp, "%s", cell->sval);
             break;
 
         case CELL_CONS: {

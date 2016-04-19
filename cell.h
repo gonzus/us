@@ -16,8 +16,9 @@
 #define CELL_INT    1  // Integers => long
 #define CELL_REAL   2  // Reals => double
 #define CELL_STRING 3  // Strings
-#define CELL_CONS   4  // Cons cells
-#define CELL_FUNC   5  // Functions -- not used yet
+#define CELL_SYMBOL 4  // Symbols
+#define CELL_CONS   5  // Cons cells
+#define CELL_FUNC   6  // Functions -- not used yet
 
 // Guess what these members are...
 typedef struct Cons {
@@ -52,6 +53,9 @@ Cell* cell_create_real_from_string(const char* value, int len);
 
 // Create a cell with a string value
 Cell* cell_create_string(const char* value, int len);
+
+// Create a cell with a symbol value
+Cell* cell_create_symbol(const char* value, int len);
 
 // Implementation of cons
 Cell* cell_cons(Cell* car, Cell* cdr);
