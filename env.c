@@ -3,15 +3,6 @@
 #include "cell.h"
 #include "env.h"
 
-Env* env_create(int size, Env* parent)
-{
-    Env* env = (Env*) malloc(sizeof(Env));
-    env->parent = parent;
-    env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
-    env->table = calloc(env->size, sizeof(Symbol));
-    return env;
-}
-
 void env_destroy(Env* env)
 {
     for (int j = 0; j < env->size; ++j) {
@@ -23,7 +14,19 @@ void env_destroy(Env* env)
         }
     }
     free(env->table);
+    env->table = 0;
+    env->size = 0;
+    env->parent = 0;
     free(env);
+}
+
+Env* env_create(int size, Env* parent)
+{
+    Env* env = (Env*) malloc(sizeof(Env));
+    env->parent = parent;
+    env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
+    env->table = calloc(env->size, sizeof(Symbol));
+    return env;
 }
 
 /*
@@ -50,7 +53,7 @@ Symbol* env_lookup(Env* env, const char* name, int create)
         }
     }
 
-    // Name not found, search for it up in the chain, but never create it there
+    // Name not found, search for it up in the chain, but NEVER create it there
     if (env->parent) {
         s = env_lookup(env->parent, name, 0);
         if (s) {
@@ -67,5 +70,6 @@ Symbol* env_lookup(Env* env, const char* name, int create)
         env->table[h] = s;
     }
 
+    // Return what we got, if anything
     return s;
 }

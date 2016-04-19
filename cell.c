@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include "cell.h"
 
+#define CELL_NIL "nil"
+
 static Cell cell_nil;
 Cell* nil = &cell_nil;
 
@@ -17,6 +19,8 @@ Cell* cell_create_int(int value)
     return cell;
 }
 
+// TODO: these three functions (and maybe others) should do
+// some checking for their args...
 Cell* cell_cons(Cell* car, Cell* cdr)
 {
     Cell* cell = (Cell*) malloc(sizeof(Cell));
@@ -46,12 +50,12 @@ static void cell_print_all(const Cell* cell, FILE* fp)
         case CELL_CONS: {
             const Cons* cons = &cell->cons;
             if (cons->car == nil) {
-                fprintf(fp, "nil");
+                fputs(CELL_NIL, fp);
             }
             else if (cons->car->tag == CELL_CONS) {
-                fprintf(fp, "(");
+                fputc('(', fp);
                 cell_print_all(cons->car, fp);
-                fprintf(fp, ")");
+                fputc(')', fp);
             }
             else {
                 cell_print_all(cons->car, fp);
@@ -60,11 +64,11 @@ static void cell_print_all(const Cell* cell, FILE* fp)
             if (cons->cdr == nil) {
             }
             else if (cons->cdr->tag == CELL_CONS) {
-                fprintf(fp, " ");
+                fputc(' ', fp);
                 cell_print_all(cons->cdr, fp);
             }
             else {
-                fprintf(fp, " . ");
+                fputs(" . ", fp);
                 cell_print_all(cons->cdr, fp);
             }
             break;
@@ -75,19 +79,19 @@ static void cell_print_all(const Cell* cell, FILE* fp)
 void cell_print(const Cell* cell, FILE* fp, int eol)
 {
     if (cell == nil) {
-        fprintf(fp, "nil");
+        fputs(CELL_NIL, fp);
     }
     else {
        if (cell->tag == CELL_CONS) {
-           fprintf(fp, "%c", '(');
+           fputc('(', fp);
        }
        cell_print_all(cell, fp);
        if (cell->tag == CELL_CONS) {
-           fprintf(fp, "%c", ')');
+           fputc(')', fp);
        }
     }
 
     if (eol) {
-        fprintf(fp, "\n");
+        fputc('\n', fp);
     }
 }
