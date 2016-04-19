@@ -8,6 +8,12 @@ static void test_nil(void)
     cell_print(nil, stdout, 1);
 }
 
+static void test_string(void)
+{
+    Cell* c = cell_create_string("In a hole in the ground there lived a hobbit...", 0);
+    cell_print(c, stdout, 1);
+}
+
 static void test_number(void)
 {
     static struct {
@@ -23,6 +29,12 @@ static void test_number(void)
         printf("%s => ", data[j].expected);
         cell_print(c, stdout, 1);
     }
+
+    Cell* ci = cell_create_int_from_string("-123456", 0);
+    cell_print(ci, stdout, 1);
+
+    Cell* cr = cell_create_real_from_string("-123.4567", 0);
+    cell_print(cr, stdout, 1);
 }
 
 static void test_simple_list(void)
@@ -95,13 +107,16 @@ static void test_parse(void)
 
 int main(int argc, char* argv[])
 {
+    printf("== START ==========\n");
     test_nil();
+    test_string();
     test_number();
     test_simple_list();
     test_nested_list();
     test_dotted();
     test_symbol();
     test_parse();
+    printf("== END ============\n");
 
     return 0;
 }

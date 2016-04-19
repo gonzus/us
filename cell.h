@@ -13,9 +13,11 @@
 #include <stdio.h>
 
 #define CELL_NONE   0  // Needed?
-#define CELL_INT    1  // Integers => int
-#define CELL_CONS   2  // Cons cells
-#define CELL_FUNC   3  // Functions -- not used yet
+#define CELL_INT    1  // Integers => long
+#define CELL_REAL   2  // Reals => double
+#define CELL_STRING 3  // Strings
+#define CELL_CONS   4  // Cons cells
+#define CELL_FUNC   5  // Functions -- not used yet
 
 // Guess what these members are...
 typedef struct Cons {
@@ -27,7 +29,9 @@ typedef struct Cons {
 typedef struct Cell {
     unsigned char tag;
     union {
-        int ival;
+        long ival;
+        double rval;
+        char* sval;
         Cons cons;
     };
 } Cell;
@@ -38,8 +42,16 @@ extern Cell* nil;
 // Destroy a cell
 void cell_destroy(Cell* cell);
 
-// Create a cell with an int value
-Cell* cell_create_int(int value);
+// Create a cell with an integer value
+Cell* cell_create_int(long value);
+Cell* cell_create_int_from_string(const char* value, int len);
+
+// Create a cell with a real value
+Cell* cell_create_real(double value);
+Cell* cell_create_real_from_string(const char* value, int len);
+
+// Create a cell with a string value
+Cell* cell_create_string(const char* value, int len);
 
 // Implementation of cons
 Cell* cell_cons(Cell* car, Cell* cdr);
