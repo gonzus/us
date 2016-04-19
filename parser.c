@@ -165,6 +165,6 @@ int token(const char* str, int token, int beg, int end)
         "TOKEN_RPAREN",
     };
     int len = end - beg;
-    fprintf(stderr, "%-15.15s: [%*.*s]\n", Token[token], len, len, str + beg);
+    printf("%-15.15s: [%*.*s]\n", Token[token], len, len, str + beg);
     return 0;
 }
