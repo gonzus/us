@@ -224,7 +224,6 @@ static int token(Parser* parser, int token)
     };
 
     const char* tok = parser->str + parser->beg;;
-    printf("%-15.15s", Token[token]);
     int len = 0;
     switch (token) {
         case TOKEN_INT:
@@ -232,8 +231,23 @@ static int token(Parser* parser, int token)
         case TOKEN_STRING:
         case TOKEN_SYMBOL:
             len = parser->pos - parser->beg;
-            printf(": [%*.*s]", len, len, tok);
             break;
+    }
+
+    // There are some degenerate cases that are recognized
+    // as numbers, but should really be symbols.
+    if (len == 1 &&
+        (token == TOKEN_INT ||
+         token == TOKEN_REAL) &&
+        (tok[0] == '+' ||
+         tok[0] == '-' ||
+         tok[0] == '.')) {
+        token = TOKEN_SYMBOL;
+    }
+
+    printf("%-15.15s", Token[token]);
+    if (len > 0) {
+        printf(": [%*.*s] (%d)", len, len, tok, len);
     }
     printf("\n");
     fflush(stdout);
