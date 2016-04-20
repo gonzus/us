@@ -1,7 +1,6 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "cell.h"
 #include "parser.h"
 
 #define PARSER_DEFAULT_DEPTH 128
@@ -53,6 +52,11 @@ void parser_reset(Parser* parser, const char* str)
     parser->str = str;
     parser->pos = 0;
     parser->beg = 0;
+}
+
+Cell* parser_result(Parser* parser)
+{
+    return parser->exp[0].frst;
 }
 
 void parser_parse(Parser* parser, const char* str)

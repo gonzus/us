@@ -5,12 +5,14 @@
 // It also can have a parent environment.
 // When names hash to the same bucket, use a singly linked list.
 
+#include "cell.h"
+
 #define ENV_DEFAULT_SIZE 1021
 
 // An entry in the hash table
 typedef struct Symbol {
     const char* name;
-    struct Cell* value;
+    Cell* value;
     struct Symbol* next;
 } Symbol;
 

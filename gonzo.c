@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "cell.h"
 #include "env.h"
 #include "parser.h"
@@ -99,6 +100,7 @@ static void test_parse(void)
         { " -3.1415 " },
         { " \"The Hobbit rules!\" " },
         { " (1 2 3) " },
+        { " (1 4+ 5- 6.1* 7.4/ 1.2.3 2 3 4.655 3[6]) " },
         { " (1 2 (a b c) 3 (4 x (5 y))) " },
         { "  ( define    fact   (lambda x (if(< x 2) 1 (* x(fact(1- x))))))  " },
         { "(define       (sum n) (if (zero? n  )         0 (+ n (sum (sub1 n)))))"       },
@@ -109,7 +111,7 @@ static void test_parse(void)
         const char* code = data[j].code;
         printf("Parsing [%s]:\n", code);
         parser_parse(parser, code);
-        Cell* c = parser->exp[0].frst;
+        Cell* c = parser_result(parser);
         cell_print(c, stdout, 1);
     }
     parser_destroy(parser);
