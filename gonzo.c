@@ -94,6 +94,12 @@ static void test_parse(void)
     static struct {
         const char* code;
     } data[] = {
+        { " nil " },
+        { " 11 " },
+        { " -3.1415 " },
+        { " \"The Hobbit rules!\" " },
+        { " (1 2 3) " },
+        { " (1 2 (a b c) 3 (4 x (5 y))) " },
         { "  ( define    fact   (lambda x (if(< x 2) 1 (* x(fact(1- x))))))  " },
         { "(define       (sum n) (if (zero? n  )         0 (+ n (sum (sub1 n)))))"       },
     };
