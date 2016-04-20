@@ -8,19 +8,21 @@
 
 // Possible parser->states for our parser; it starts in STATE_NORMAL
 #define STATE_NORMAL 0
-#define STATE_NUMBER 1
-#define STATE_STRING 2
-#define STATE_SYMBOL 3
-#define STATE_LAST   4
+#define STATE_INT    1
+#define STATE_REAL   2
+#define STATE_STRING 3
+#define STATE_SYMBOL 4
+#define STATE_LAST   5
 
 // Possible tokens recognized by our parser
 #define TOKEN_NONE   0
-#define TOKEN_NUMBER 1
-#define TOKEN_STRING 2
-#define TOKEN_SYMBOL 3
-#define TOKEN_LPAREN 4
-#define TOKEN_RPAREN 5
-#define TOKEN_LAST   6
+#define TOKEN_INT    1
+#define TOKEN_REAL   2
+#define TOKEN_STRING 3
+#define TOKEN_SYMBOL 4
+#define TOKEN_LPAREN 5
+#define TOKEN_RPAREN 6
+#define TOKEN_LAST   7
 
 static int token(Parser* parser, int token);
 
@@ -58,10 +60,12 @@ void parser_parse(Parser* parser, const char* str)
     parser_reset(parser, str);
     for (; ; ++parser->pos) {
         if (str[parser->pos] == '\0') {
-            if (parser->state == STATE_NORMAL) {
+            if (parser->state == STATE_INT) {
+                token(parser, TOKEN_INT);
+                parser->state = STATE_NORMAL;
             }
-            else if (parser->state == STATE_NUMBER) {
-                token(parser, TOKEN_NUMBER);
+            else if (parser->state == STATE_REAL) {
+                token(parser, TOKEN_REAL);
                 parser->state = STATE_NORMAL;
             }
             else if (parser->state == STATE_STRING) {
@@ -78,8 +82,12 @@ void parser_parse(Parser* parser, const char* str)
             if (parser->state == STATE_NORMAL) {
                 parser->state = STATE_STRING;
             }
-            else if (parser->state == STATE_NUMBER) {
-                token(parser, TOKEN_NUMBER);
+            else if (parser->state == STATE_INT) {
+                token(parser, TOKEN_INT);
+                parser->state = STATE_STRING;
+            }
+            else if (parser->state == STATE_REAL) {
+                token(parser, TOKEN_REAL);
                 parser->state = STATE_STRING;
             }
             else if (parser->state == STATE_STRING) {
@@ -96,16 +104,20 @@ void parser_parse(Parser* parser, const char* str)
             if (parser->state == STATE_NORMAL) {
                 token(parser, TOKEN_LPAREN);
             }
-            else if (parser->state == STATE_NUMBER) {
-                // TODO: 34( is a valid symbol? For now, not.
-                token(parser, TOKEN_NUMBER);
+            else if (parser->state == STATE_INT) {
+                // 34( is two tokens
+                token(parser, TOKEN_INT);
                 token(parser, TOKEN_LPAREN);
                 parser->state = STATE_NORMAL;
             }
-            else if (parser->state == STATE_STRING) {
+            else if (parser->state == STATE_REAL) {
+                // 34.7( is two tokens
+                token(parser, TOKEN_REAL);
+                token(parser, TOKEN_LPAREN);
+                parser->state = STATE_NORMAL;
             }
             else if (parser->state == STATE_SYMBOL) {
-                // TODO: ab( is a valid symbol? For now, not.
+                // abc( is two tokens
                 token(parser, TOKEN_SYMBOL);
                 token(parser, TOKEN_LPAREN);
                 parser->state = STATE_NORMAL;
@@ -115,29 +127,60 @@ void parser_parse(Parser* parser, const char* str)
             if (parser->state == STATE_NORMAL) {
                 token(parser, TOKEN_RPAREN);
             }
-            else if (parser->state == STATE_NUMBER) {
-                // TODO: 34) is a valid symbol? For now, not.
-                token(parser, TOKEN_NUMBER);
+            else if (parser->state == STATE_INT) {
+                // 34) is two tokens
+                token(parser, TOKEN_INT);
                 token(parser, TOKEN_RPAREN);
                 parser->state = STATE_NORMAL;
             }
-            else if (parser->state == STATE_STRING) {
+            else if (parser->state == STATE_REAL) {
+                // 34.7) is two tokens
+                token(parser, TOKEN_REAL);
+                token(parser, TOKEN_RPAREN);
+                parser->state = STATE_NORMAL;
             }
             else if (parser->state == STATE_SYMBOL) {
-                // TODO: ab) is a valid symbol? For now, not.
+                // abc) is two tokens
                 token(parser, TOKEN_SYMBOL);
                 token(parser, TOKEN_RPAREN);
                 parser->state = STATE_NORMAL;
             }
         }
+        else if (str[parser->pos] == '+' ||
+                 str[parser->pos] == '-') {
+            if (parser->state == STATE_NORMAL) {
+                parser->beg = parser->pos;
+                parser->state = STATE_INT;
+            }
+            else if (parser->state == STATE_INT ||
+                     parser->state == STATE_REAL) {
+                // 1+ 1- 1.5+ 1.5- are valid symbols
+                parser->state = STATE_SYMBOL;
+            }
+        }
+        else if (str[parser->pos] == '.') {
+            if (parser->state == STATE_NORMAL) {
+                parser->beg = parser->pos;
+                parser->state = STATE_REAL;
+            }
+            else if (parser->state == STATE_INT) {
+                parser->state = STATE_REAL;
+            }
+            else if (parser->state == STATE_REAL) {
+                // 123.4. is a valid symbol
+                parser->state = STATE_SYMBOL;
+            }
+        }
         else if (isspace(str[parser->pos])) {
             if (parser->state == STATE_NORMAL) {
             }
-            else if (parser->state == STATE_NUMBER) {
-                token(parser, TOKEN_NUMBER);
+            else if (parser->state == STATE_INT) {
+                token(parser, TOKEN_INT);
                 parser->state = STATE_NORMAL;
             }
-            else if (parser->state == STATE_STRING) {
+            else if (parser->state == STATE_REAL) {
+                token(parser, TOKEN_REAL);
+                parser->state = STATE_NORMAL;
             }
             else if (parser->state == STATE_SYMBOL) {
                 token(parser, TOKEN_SYMBOL);
@@ -145,14 +188,9 @@ void parser_parse(Parser* parser, const char* str)
             }
         }
         else if (isdigit(str[parser->pos])) {
-            if (parser->state == STATE_NORMAL) { parser->beg = parser->pos;
-                parser->state = STATE_NUMBER;
-            }
-            else if (parser->state == STATE_NUMBER) {
-            }
-            else if (parser->state == STATE_STRING) {
-            }
-            else if (parser->state == STATE_SYMBOL) {
+            if (parser->state == STATE_NORMAL) {
+                parser->beg = parser->pos;
+                parser->state = STATE_INT;
             }
         }
         else {
@@ -160,13 +198,10 @@ void parser_parse(Parser* parser, const char* str)
                 parser->beg = parser->pos;
                 parser->state = STATE_SYMBOL;
             }
-            else if (parser->state == STATE_NUMBER) {
-                // 1+ is a valid symbol, simply change parser->states, leave parser->beg alone
+            else if (parser->state == STATE_INT ||
+                     parser->state == STATE_REAL) {
+                // 1/ 1.4/ are valid symbols
                 parser->state = STATE_SYMBOL;
-            }
-            else if (parser->state == STATE_STRING) {
-            }
-            else if (parser->state == STATE_SYMBOL) {
             }
         }
     }
@@ -176,7 +211,8 @@ static int token(Parser* parser, int token)
 {
     static const char* Token[TOKEN_LAST] = {
         "TOKEN_NONE",
-        "TOKEN_NUMBER",
+        "TOKEN_INT",
+        "TOKEN_REAL",
         "TOKEN_STRING",
         "TOKEN_SYMBOL",
         "TOKEN_LPAREN",
@@ -187,7 +223,8 @@ static int token(Parser* parser, int token)
     printf("%-15.15s", Token[token]);
     int len = 0;
     switch (token) {
-        case TOKEN_NUMBER:
+        case TOKEN_INT:
+        case TOKEN_REAL:
         case TOKEN_STRING:
         case TOKEN_SYMBOL:
             len = parser->pos - parser->beg;
@@ -199,8 +236,12 @@ static int token(Parser* parser, int token)
 
     Cell* cell = 0;
     switch (token) {
-        case TOKEN_NUMBER:
+        case TOKEN_INT:
             cell = cell_create_int_from_string(tok, len);
+            break;
+
+        case TOKEN_REAL:
+            cell = cell_create_real_from_string(tok, len);
             break;
 
         case TOKEN_STRING:
