@@ -1,9 +1,12 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "cell.h"
 #include "parser.h"
 
-// Possible states for our parser; it starts in STATE_NORMAL
+#define PARSER_DEFAULT_DEPTH 128
+
+// Possible parser->states for our parser; it starts in STATE_NORMAL
 #define STATE_NORMAL 0
 #define STATE_NUMBER 1
 #define STATE_STRING 2
@@ -19,154 +22,157 @@
 #define TOKEN_RPAREN 5
 #define TOKEN_LAST   6
 
-int parse(const char* str)
+static int token(Parser* parser, int token);
+
+Parser* parser_create(int depth)
 {
-    int state = STATE_NORMAL;
-    int beg = -1;  // beginning position for number, string, symbol
-    int pos = 0;   // current position
-    while (1) {
-        if (str[pos] == '\0') {
-            if (state == STATE_NORMAL) {
+    Parser* parser = (Parser*) malloc(sizeof(Parser));
+    parser->depth = depth <= 0 ?  PARSER_DEFAULT_DEPTH : depth;
+    parser->exp = calloc(parser->depth, sizeof(Expression));
+    parser->level = 0;
+
+    parser->state = STATE_NORMAL;
+    parser->str = 0;
+    parser->pos = 0;
+    parser->beg = 0;
+    return parser;
+}
+
+void parser_destroy(Parser* parser)
+{
+    free(parser->exp);
+    free(parser);
+}
+
+void parser_reset(Parser* parser, const char* str)
+{
+    parser->level = 0;
+    parser->state = STATE_NORMAL;
+    parser->str = str;
+    parser->pos = 0;
+    parser->beg = 0;
+}
+
+void parser_parse(Parser* parser, const char* str)
+{
+    parser_reset(parser, str);
+    for (; ; ++parser->pos) {
+        if (str[parser->pos] == '\0') {
+            if (parser->state == STATE_NORMAL) {
             }
-            else if (state == STATE_NUMBER) {
-                token(str, TOKEN_NUMBER, beg, pos);
-                beg = -1;
-                state = STATE_NORMAL;
+            else if (parser->state == STATE_NUMBER) {
+                token(parser, TOKEN_NUMBER);
+                parser->state = STATE_NORMAL;
             }
-            else if (state == STATE_STRING) {
+            else if (parser->state == STATE_STRING) {
                 // ERROR missing closing "
-                beg = -1;
-                state = STATE_NORMAL;
+                parser->state = STATE_NORMAL;
             }
-            else if (state == STATE_SYMBOL) {
-                token(str, TOKEN_SYMBOL, beg, pos);
-                beg = -1;
-                state = STATE_NORMAL;
+            else if (parser->state == STATE_SYMBOL) {
+                token(parser, TOKEN_SYMBOL);
+                parser->state = STATE_NORMAL;
             }
             break; // QUIT LOOP
         }
-        else if (str[pos] == '"') {
-            if (state == STATE_NORMAL) {
-                state = STATE_STRING;
-                beg = pos + 1;
+        else if (str[parser->pos] == '"') {
+            if (parser->state == STATE_NORMAL) {
+                parser->state = STATE_STRING;
             }
-            else if (state == STATE_NUMBER) {
-                token(str, TOKEN_NUMBER, beg, pos);
-                beg = pos + 1;
-                state = STATE_STRING;
+            else if (parser->state == STATE_NUMBER) {
+                token(parser, TOKEN_NUMBER);
+                parser->state = STATE_STRING;
             }
-            else if (state == STATE_STRING) {
-                token(str, TOKEN_STRING, beg, pos);
-                beg = -1;
-                state = STATE_NORMAL;
+            else if (parser->state == STATE_STRING) {
+                token(parser, TOKEN_STRING);
+                parser->state = STATE_NORMAL;
             }
-            else if (state == STATE_SYMBOL) {
-                token(str, TOKEN_SYMBOL, beg, pos);
-                beg = pos + 1;
-                state = STATE_STRING;
+            else if (parser->state == STATE_SYMBOL) {
+                token(parser, TOKEN_SYMBOL);
+                parser->state = STATE_STRING;
+            }
+            parser->beg = parser->pos + 1;
+        }
+        else if (str[parser->pos] == '(') {
+            if (parser->state == STATE_NORMAL) {
+                token(parser, TOKEN_LPAREN);
+            }
+            else if (parser->state == STATE_NUMBER) {
+                // TODO: 34( is a valid symbol? For now, not.
+                token(parser, TOKEN_NUMBER);
+                token(parser, TOKEN_LPAREN);
+                parser->state = STATE_NORMAL;
+            }
+            else if (parser->state == STATE_STRING) {
+            }
+            else if (parser->state == STATE_SYMBOL) {
+                // TODO: ab( is a valid symbol? For now, not.
+                token(parser, TOKEN_SYMBOL);
+                token(parser, TOKEN_LPAREN);
+                parser->state = STATE_NORMAL;
             }
         }
-        else if (str[pos] == '(') {
-            if (state == STATE_NORMAL) {
-                token(str, TOKEN_LPAREN, pos, pos + 1);
+        else if (str[parser->pos] == ')') {
+            if (parser->state == STATE_NORMAL) {
+                token(parser, TOKEN_RPAREN);
             }
-            else if (state == STATE_NUMBER) {
-                token(str, TOKEN_NUMBER, beg, pos);
-                beg = -1;
-                token(str, TOKEN_LPAREN, pos, pos + 1);
-                state = STATE_NORMAL;
+            else if (parser->state == STATE_NUMBER) {
+                // TODO: 34) is a valid symbol? For now, not.
+                token(parser, TOKEN_NUMBER);
+                token(parser, TOKEN_RPAREN);
+                parser->state = STATE_NORMAL;
             }
-            else if (state == STATE_STRING) {
+            else if (parser->state == STATE_STRING) {
             }
-            else if (state == STATE_SYMBOL) {
-                token(str, TOKEN_SYMBOL, beg, pos);
-                beg = -1;
-                token(str, TOKEN_LPAREN, pos, pos + 1);
-                state = STATE_NORMAL;
-            }
-        }
-        else if (str[pos] == ')') {
-            if (state == STATE_NORMAL) {
-                token(str, TOKEN_RPAREN, pos, pos + 1);
-            }
-            else if (state == STATE_NUMBER) {
-                token(str, TOKEN_NUMBER, beg, pos);
-                beg = -1;
-                token(str, TOKEN_RPAREN, pos, pos + 1);
-                state = STATE_NORMAL;
-            }
-            else if (state == STATE_STRING) {
-            }
-            else if (state == STATE_SYMBOL) {
-                token(str, TOKEN_SYMBOL, beg, pos);
-                beg = -1;
-                token(str, TOKEN_RPAREN, pos, pos + 1);
-                state = STATE_NORMAL;
+            else if (parser->state == STATE_SYMBOL) {
+                // TODO: ab) is a valid symbol? For now, not.
+                token(parser, TOKEN_SYMBOL);
+                token(parser, TOKEN_RPAREN);
+                parser->state = STATE_NORMAL;
             }
         }
-        else if (isspace(str[pos])) {
-            if (state == STATE_NORMAL) {
+        else if (isspace(str[parser->pos])) {
+            if (parser->state == STATE_NORMAL) {
             }
-            else if (state == STATE_NUMBER) {
-                token(str, TOKEN_NUMBER, beg, pos);
-                beg = -1;
-                state = STATE_NORMAL;
+            else if (parser->state == STATE_NUMBER) {
+                token(parser, TOKEN_NUMBER);
+                parser->state = STATE_NORMAL;
             }
-            else if (state == STATE_STRING) {
+            else if (parser->state == STATE_STRING) {
             }
-            else if (state == STATE_SYMBOL) {
-                token(str, TOKEN_SYMBOL, beg, pos);
-                beg = -1;
-                state = STATE_NORMAL;
+            else if (parser->state == STATE_SYMBOL) {
+                token(parser, TOKEN_SYMBOL);
+                parser->state = STATE_NORMAL;
             }
         }
-        else if (isdigit(str[pos])) {
-            if (state == STATE_NORMAL) {
-                state = STATE_NUMBER;
-                beg = pos;
+        else if (isdigit(str[parser->pos])) {
+            if (parser->state == STATE_NORMAL) { parser->beg = parser->pos;
+                parser->state = STATE_NUMBER;
             }
-            else if (state == STATE_NUMBER) {
+            else if (parser->state == STATE_NUMBER) {
             }
-            else if (state == STATE_STRING) {
+            else if (parser->state == STATE_STRING) {
             }
-            else if (state == STATE_SYMBOL) {
+            else if (parser->state == STATE_SYMBOL) {
             }
         }
         else {
-            if (state == STATE_NORMAL) {
-                beg = pos;
-                state = STATE_SYMBOL;
+            if (parser->state == STATE_NORMAL) {
+                parser->beg = parser->pos;
+                parser->state = STATE_SYMBOL;
             }
-            else if (state == STATE_NUMBER) {
-                token(str, TOKEN_NUMBER, beg, pos);
-                beg = pos + 1;
-                state = STATE_SYMBOL;
+            else if (parser->state == STATE_NUMBER) {
+                // 1+ is a valid symbol, simply change parser->states, leave parser->beg alone
+                parser->state = STATE_SYMBOL;
             }
-            else if (state == STATE_STRING) {
+            else if (parser->state == STATE_STRING) {
             }
-            else if (state == STATE_SYMBOL) {
+            else if (parser->state == STATE_SYMBOL) {
             }
         }
-
-        ++pos;
     }
-
-    return state;
 }
 
-typedef struct Level {
-    Cell* frst;
-    Cell* last;
-} Level;
-
-typedef struct Parser {
-    Level level[128];
-    int pos;
-} Parser;
-
-static Parser parser;
-
-int token(const char* str, int token, int beg, int end)
+static int token(Parser* parser, int token)
 {
     static const char* Token[TOKEN_LAST] = {
         "TOKEN_NONE",
@@ -176,12 +182,21 @@ int token(const char* str, int token, int beg, int end)
         "TOKEN_LPAREN",
         "TOKEN_RPAREN",
     };
-    const char* tok = str + beg;;
-    int len = end - beg;
-    printf("%-15.15s: [%*.*s]\n", Token[token], len, len, tok);
+
+    const char* tok = parser->str + parser->beg;;
+    printf("%-15.15s", Token[token]);
+    int len = 0;
+    switch (token) {
+        case TOKEN_NUMBER:
+        case TOKEN_STRING:
+        case TOKEN_SYMBOL:
+            len = parser->pos - parser->beg;
+            printf(": [%*.*s]", len, len, tok);
+            break;
+    }
+    printf("\n");
     fflush(stdout);
 
-    Level* level = &parser.level[parser.pos];
     Cell* cell = 0;
     switch (token) {
         case TOKEN_NUMBER:
@@ -197,33 +212,41 @@ int token(const char* str, int token, int beg, int end)
             break;
 
         case TOKEN_LPAREN:
-            ++parser.pos;
-            level->frst = 0;
-            level->last = 0;
+            ++parser->level;
+            parser->exp[parser->level].frst = 0;
+            parser->exp[parser->level].last = 0;
             break;
 
         case TOKEN_RPAREN:
-            level->frst = 0;
-            level->last = 0;
-            --parser.pos;
+            cell = parser->exp[parser->level].frst;
+            --parser->level;
             break;
 
         case TOKEN_NONE:
         default:
             break;
     }
-    if (cell) {
-        cell = cell_cons(cell, nil);
-        if (!level->frst) {
-            level->frst = cell;
-        }
-        if (!level->last) {
-            level->last = cell;
-        }
-        else {
-            level->last->cons.cdr = cell;
-            level->last = cell;
-        }
+    if (!cell) {
+        return 0;
+    }
+
+    Expression* exp = &parser->exp[parser->level];
+    if (parser->level == 0) {
+        exp->frst = cell;
+        exp->last = 0;
+        return 0;
+    }
+
+    cell = cell_cons(cell, nil);
+    if (!exp->frst) {
+        exp->frst = cell;
+    }
+    if (!exp->last) {
+        exp->last = cell;
+    }
+    else {
+        exp->last->cons.cdr = cell;
+        exp->last = cell;
     }
 
     return 0;

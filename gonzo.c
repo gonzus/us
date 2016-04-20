@@ -94,15 +94,19 @@ static void test_parse(void)
     static struct {
         const char* code;
     } data[] = {
-        { "(define fact (lambda x (if (< x 2) 1 (* x (fact (- x 1))))))" },
-        { "(define (sum n) (if (zero? n) 0 (+ n (sum (sub1 n)))))"       },
+        { "  ( define    fact   (lambda x (if(< x 2) 1 (* x(fact(1- x))))))  " },
+        { "(define       (sum n) (if (zero? n  )         0 (+ n (sum (sub1 n)))))"       },
     };
 
+    Parser* parser = parser_create(0);
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;
         printf("Parsing [%s]:\n", code);
-        parse(code);
+        parser_parse(parser, code);
+        Cell* c = parser->exp[0].frst;
+        cell_print(c, stdout, 1);
     }
+    parser_destroy(parser);
 }
 
 int main(int argc, char* argv[])
