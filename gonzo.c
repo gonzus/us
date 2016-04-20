@@ -5,7 +5,7 @@
 
 static void test_nil(void)
 {
-    printf("%s => ", "nil");
+    printf("%s => ", "()");
     cell_print(nil, stdout, 1);
 }
 
@@ -95,10 +95,10 @@ static void test_parse(void)
     static struct {
         const char* code;
     } data[] = {
-        { " nil " },
+        { " () " },
         { " 11 " },
         { " -3.1415 " },
-        { " ( +1 -2 3. 4. +5.5 -6.6 ) " },
+        { " ( +1 -2 3. 4. +5.5 -6.6 #t #f () a b c ) " },
         { " ( + - * / . % ! @ # $ ^ & ) " },
         { " \"The Hobbit rules!\" " },
         { " (1 2 3) " },

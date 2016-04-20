@@ -278,6 +278,9 @@ static int token(Parser* parser, int token)
 
         case TOKEN_RPAREN:
             cell = parser->exp[parser->level].frst;
+            if (!cell) {
+                cell = nil;
+            }
             --parser->level;
             break;
 

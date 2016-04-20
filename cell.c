@@ -3,7 +3,7 @@
 #include <string.h>
 #include "cell.h"
 
-#define CELL_NIL "nil"
+#define CELL_NIL "()"
 
 static Cell cell_nil;
 Cell* nil = &cell_nil;
