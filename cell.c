@@ -121,6 +121,16 @@ Cell* cell_create_symbol(const char* value, int len)
     return cell;
 }
 
+Cell* cell_create_native(const char* label, NativeFunc* func)
+{
+    Cell* cell = (Cell*) malloc(sizeof(Cell));
+    cell->tag = CELL_NATIVE;
+    cell->nval.label = label;
+    cell->nval.func = func;
+
+    return cell;
+}
+
 
 // TODO: these three functions (and maybe others) should do
 // some checking for their args...
@@ -160,6 +170,10 @@ static void cell_print_all(const Cell* cell, FILE* fp)
 
         case CELL_SYMBOL:
             fprintf(fp, "%s", cell->sval);
+            break;
+
+        case CELL_NATIVE:
+            fprintf(fp, "<%s>", cell->nval.label);
             break;
 
         case CELL_CONS: {
@@ -210,3 +224,10 @@ void cell_print(const Cell* cell, FILE* fp, int eol)
         fputc('\n', fp);
     }
 }
+
+Cell* func_add(Cell* args)
+{
+    printf("FUCK YEAH!\n");
+    return nil;
+}
+

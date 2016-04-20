@@ -2,6 +2,7 @@
 #include "cell.h"
 #include "env.h"
 #include "parser.h"
+#include "eval.h"
 
 static void test_nil(void)
 {
@@ -98,7 +99,7 @@ static void test_parse(void)
         { " () " },
         { " 11 " },
         { " -3.1415 " },
-        { " ( +1 -2 3. 4. +5.5 -6.6 #t #f () a b c ) " },
+        { " ( +1 -2 3. 4. +5.5 -6.6 +.7 .8 -.9 #t #f () a b c ) " },
         { " ( + - * / . % ! @ # $ ^ & ) " },
         { " \"The Hobbit rules!\" " },
         { " (1 2 3) " },
@@ -119,6 +120,36 @@ static void test_parse(void)
     parser_destroy(parser);
 }
 
+static void test_eval(void)
+{
+    static struct {
+        const char* code;
+    } data[] = {
+        { " 11 " },
+        { " -3.1415 " },
+        { " (+ 3 4) " },
+    };
+
+    Parser* parser = parser_create(0);
+
+    Env* env = env_create(0, 0);
+    Symbol* sym = env_lookup(env, "+", 1);
+    sym->value = cell_create_native("+", func_add);
+
+    for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
+        const char* code = data[j].code;
+        printf("Parsing [%s]:\n", code);
+        parser_parse(parser, code);
+        Cell* c = parser_result(parser);
+        cell_print(c, stdout, 1);
+        const Cell* r = cell_eval(c, env);
+        cell_print(r, stdout, 1);
+    }
+
+    env_destroy(env);
+    parser_destroy(parser);
+}
+
 int main(int argc, char* argv[])
 {
     printf("== START ==========\n");
@@ -130,6 +161,7 @@ int main(int argc, char* argv[])
     test_dotted();
     test_symbol();
     test_parse();
+    test_eval();
     printf("== END ============\n");
 
     return 0;

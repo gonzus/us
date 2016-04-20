@@ -8,8 +8,9 @@ CFLAGS += -Werror
 cell.o: cell.c
 env.o: env.c
 parser.o: parser.c
+eval.o: eval.c
 
-libus.a: cell.o env.o parser.o
+libus.a: cell.o env.o parser.o eval.o
 	ar cr $@ $^
 
 gonzo.o: gonzo.c

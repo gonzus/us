@@ -16,13 +16,20 @@
 #define CELL_STRING 3  // Strings
 #define CELL_SYMBOL 4  // Symbols
 #define CELL_CONS   5  // Cons cells
-#define CELL_FUNC   6  // Functions -- not used yet
+#define CELL_NATIVE 6  // Native functions
 
 // Guess what these members are...
 typedef struct Cons {
     struct Cell* car;
     struct Cell* cdr;
 } Cons;
+
+typedef struct Cell* (NativeFunc)(struct Cell* args);
+
+typedef struct Native {
+    const char* label;
+    NativeFunc* func;
+} Native;
 
 // A tagged anonymous union goes in here:
 typedef struct Cell {
@@ -32,6 +39,7 @@ typedef struct Cell {
         double rval;
         char* sval;
         Cons cons;
+        Native nval;
     };
 } Cell;
 
@@ -55,6 +63,9 @@ Cell* cell_create_string(const char* value, int len);
 // Create a cell with a symbol value
 Cell* cell_create_symbol(const char* value, int len);
 
+// Create a cell with a native function
+Cell* cell_create_native(const char* label, NativeFunc* func);
+
 // Implementation of cons
 Cell* cell_cons(Cell* car, Cell* cdr);
 
@@ -64,5 +75,7 @@ Cell* cell_cdr(const Cell* cell);
 
 // Print contents of cell to given stream, optionally adding a \n
 void cell_print(const Cell* cell, FILE* fp, int eol);
+
+Cell* func_add(Cell* args);
 
 #endif
