@@ -224,10 +224,3 @@ void cell_print(const Cell* cell, FILE* fp, int eol)
         fputc('\n', fp);
     }
 }
-
-Cell* func_add(Cell* args)
-{
-    printf("FUCK YEAH!\n");
-    return nil;
-}
-

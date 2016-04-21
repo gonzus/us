@@ -76,6 +76,4 @@ Cell* cell_cdr(const Cell* cell);
 // Print contents of cell to given stream, optionally adding a \n
 void cell_print(const Cell* cell, FILE* fp, int eol);
 
-Cell* func_add(Cell* args);
-
 #endif

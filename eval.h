@@ -5,6 +5,6 @@
 #include "env.h"
 
 // Magic happens here!
-const Cell* cell_eval(const Cell* cell, Env* env);
+Cell* cell_eval(Cell* cell, Env* env);
 
 #endif

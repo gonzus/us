@@ -9,8 +9,9 @@ cell.o: cell.c
 env.o: env.c
 parser.o: parser.c
 eval.o: eval.c
+native.o: native.c
 
-libus.a: cell.o env.o parser.o eval.o
+libus.a: cell.o env.o parser.o eval.o native.o
 	ar cr $@ $^
 
 gonzo.o: gonzo.c

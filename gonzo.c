@@ -3,6 +3,7 @@
 #include "env.h"
 #include "parser.h"
 #include "eval.h"
+#include "native.h"
 
 static void test_nil(void)
 {
@@ -128,13 +129,22 @@ static void test_eval(void)
         { " 11 " },
         { " -3.1415 " },
         { " (+ 3 4) " },
+        { " (+ 1 2 3 4) " },
+        { " (+ 3 (+ 4 5) (+ 1 2)) " },
+        { " (* 2 3) " },
+        { " (* 1 2 3 4) " },
+        { " (* 2 (* 3 4) (* 5 6)) " },
+        { " (* 2 (+ 3 (* 5 4)) (+ (* 5 2) 6)) " },
     };
 
     Parser* parser = parser_create(0);
 
     Env* env = env_create(0, 0);
-    Symbol* sym = env_lookup(env, "+", 1);
+    Symbol* sym;
+    sym = env_lookup(env, "+", 1);
     sym->value = cell_create_native("+", func_add);
+    sym = env_lookup(env, "*", 1);
+    sym->value = cell_create_native("+", func_mul);
 
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;
@@ -143,6 +153,7 @@ static void test_eval(void)
         Cell* c = parser_result(parser);
         cell_print(c, stdout, 1);
         const Cell* r = cell_eval(c, env);
+        printf("=> ");
         cell_print(r, stdout, 1);
     }
 
