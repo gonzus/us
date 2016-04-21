@@ -303,13 +303,10 @@ static int token(Parser* parser, int token)
     if (!exp->frst) {
         exp->frst = cell;
     }
-    if (!exp->last) {
-        exp->last = cell;
-    }
-    else {
+    if (exp->last) {
         exp->last->cons.cdr = cell;
-        exp->last = cell;
     }
+    exp->last = cell;
 
     return 0;
 }

@@ -135,6 +135,14 @@ static void test_eval(void)
         { " (* 1 2 3 4) " },
         { " (* 2 (* 3 4) (* 5 6)) " },
         { " (* 2 (+ 3 (* 5 4)) (+ (* 5 2) 6)) " },
+        { " (quote (+ 3 4)) " },
+        { " (define gonzus 11) " },
+        { " gonzus " },
+        { " (set! gonzus (* 7 11)) " },
+        { " gonzus " },
+        { " (set! invalid (+ 2 3)) " },
+        { " invalid " },
+        { " (if (= 7 11) \"Crazy!\" \"Sane\")  " },
     };
 
     Parser* parser = parser_create(0);
