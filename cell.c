@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "env.h"
 #include "cell.h"
 
 // These are special values that have a single unique instance
@@ -121,6 +122,17 @@ Cell* cell_create_symbol(const char* value, int len)
     cell->sval = malloc(len + 1);
     memcpy(cell->sval, value ? value : "", len);
     cell->sval[len] = '\0';
+
+    return cell;
+}
+
+Cell* cell_create_procedure(Cell* params, Cell* body, Env* env)
+{
+    Cell* cell = (Cell*) malloc(sizeof(Cell));
+    cell->tag = CELL_PROC;
+    cell->pval.params = params;
+    cell->pval.body = body;
+    cell->pval.env = env;  // I love you, lexical binding
 
     return cell;
 }

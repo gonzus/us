@@ -17,7 +17,8 @@
 #define CELL_STRING 3  // Strings
 #define CELL_SYMBOL 4  // Symbols
 #define CELL_CONS   5  // Cons cells
-#define CELL_NATIVE 6  // Native functions
+#define CELL_PROC   6  // Procedures (interpreted code)
+#define CELL_NATIVE 7  // Native functions (compiled code)
 
 // Printable forms of these special values
 #define CELL_STR_NIL    "()"
@@ -33,6 +34,13 @@ typedef struct Cons {
 // Function prototype for native implementation of procs
 typedef struct Cell* (NativeFunc)(struct Cell* args);
 
+// A procedure
+typedef struct Procedure {
+    struct Cell* params;
+    struct Cell* body;
+    struct Env* env;
+} Procedure;
+
 // A native cell
 typedef struct Native {
     const char* label;
@@ -47,6 +55,7 @@ typedef struct Cell {
         double rval;
         char* sval;
         Cons cons;
+        Procedure pval;
         Native nval;
     };
 } Cell;
@@ -72,6 +81,9 @@ Cell* cell_create_string(const char* value, int len);
 
 // Create a cell with a symbol value
 Cell* cell_create_symbol(const char* value, int len);
+
+// Create a cell with a procedure
+Cell* cell_create_procedure(Cell* params, Cell* body, struct Env* env);
 
 // Create a cell with a native function
 Cell* cell_create_native(const char* label, NativeFunc* func);

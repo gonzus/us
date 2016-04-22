@@ -8,7 +8,7 @@
         printf("Entering native %s\n", name); \
         for (Cell* c = args; c && c != nil; c = c->cons.cdr, ++pos) { \
             Cell* arg = c->cons.car; \
-            printf("Arg #%d tag %d\n", pos, arg->tag); \
+            printf("Arg #%d tag %d = %ld\n", pos, arg->tag, arg->ival); \
             do body while (0); \
         } \
         printf("Leaving native %s\n", name); \

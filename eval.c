@@ -11,6 +11,7 @@
 static Cell* cell_apply(Cell* cell, Env* env);
 static Cell* cell_set_value(Cell* cell, Env* env, int create);
 static Cell* cell_if(Cell* cell, Env* env);
+static Cell* cell_lambda(Cell* cell, Env* env);
 
 Cell* cell_eval(Cell* cell, Env* env)
 {
@@ -58,7 +59,8 @@ Cell* cell_eval(Cell* cell, Env* env)
                         ret = cell_if(cell, env);
                     }
                     else if (strcmp(car->sval, EVAL_LAMBDA) == 0 ) {
-                        printf("%s not implemented\n", car->sval);
+                        // a lambda special form
+                        ret = cell_lambda(cell, env);
                     }
                     else {
                         // a function invocation
@@ -82,7 +84,7 @@ static Cell* cell_apply(Cell* cell, Env* env)
     }
     Cell* args = 0;
     Cell* last = 0;
-    for (Cell* c = cell->cons.cdr; c && c!= nil; c = c->cons.cdr) {
+    for (Cell* c = cell->cons.cdr; c && c != nil; c = c->cons.cdr) {
         Cell* arg = cell_eval(c->cons.car, env);
         if (!arg) {
             // TODO: error
@@ -98,7 +100,30 @@ static Cell* cell_apply(Cell* cell, Env* env)
         }
         last = cons;
     }
+
+    Env* proc_env;
+    Cell* p;
+    Cell* a;
     switch (proc->tag) {
+        case CELL_PROC:
+            proc_env = env_create(0, proc->pval.env);
+            for (p = proc->pval.params, a = args;
+                 p && p != nil && a && a != nil;
+                 p = p->cons.cdr, a = a->cons.cdr) {
+                Cell* par = p->cons.car;
+                Cell* arg = a->cons.car;
+                Symbol* symbol = env_lookup(proc_env, par->sval, 1);
+                if (!symbol) {
+                    printf("Could not create symbol for [%s]\n", par->sval);
+                    continue;
+                }
+                printf("Proc, arg %s\n", par->sval);
+                symbol->value = arg;
+            }
+            ret = cell_eval(proc->pval.body, proc_env);
+            env_destroy(proc_env);
+            break;
+
         case CELL_NATIVE:
             ret = proc->nval.func(args);
             break;
@@ -159,6 +184,26 @@ static Cell* cell_if(Cell* cell, Env* env)
         else if (test == bool_f) {
             ret = cell_eval(args[3], env);
         }
+    } while (0);
+
+    return ret;
+}
+
+// Execute a lambda special form
+static Cell* cell_lambda(Cell* cell, Env* env)
+{
+    Cell* ret = nil;
+    do {
+        Cell* args[3];
+        int pos = 0;
+        for (Cell* c = cell; c && c != nil && pos < 3; c = c->cons.cdr) {
+            args[pos++] = c->cons.car;
+        }
+        if (!args[1] || !args[2]) {
+            break;
+        }
+
+        ret = cell_create_procedure(args[1], args[2], env);
     } while (0);
 
     return ret;

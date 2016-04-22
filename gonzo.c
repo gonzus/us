@@ -171,6 +171,15 @@ static void test_eval(void)
         { " (if (> 13 20) \"Positive!\" \"Negative\")  " },
         { " (if (< 13 0)  \"Positive!\" \"Negative\")  " },
         { " (if (< 13 20) \"Positive!\" \"Negative\")  " },
+        { " (define positive (lambda (x) (> x 0))) " },
+        { " (positive  7) " },
+        { " (positive -7) " },
+        { " (define fact (lambda (n) (if (< n 2) 1 (* n (fact (+ n -1)))))) " },
+        { " (fact 5) " },
+        { " (fact 10) " },
+        { " (fact 20) " },
+        { " (define fib (lambda (n) (if (< n 2) n (+ (fib (+ n -1)) (fib (+ n -2)))))) " },
+        { " (fib 10) " },
     };
 
     Parser* parser = parser_create(0);
