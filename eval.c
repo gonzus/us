@@ -10,6 +10,7 @@
 
 static Cell* cell_apply(Cell* cell, Env* env);
 static Cell* cell_set_value(Cell* cell, Env* env, int create);
+static Cell* cell_if(Cell* cell, Env* env);
 
 Cell* cell_eval(Cell* cell, Env* env)
 {
@@ -52,8 +53,11 @@ Cell* cell_eval(Cell* cell, Env* env)
                         // a set! special form
                         ret = cell_set_value(cell, env, 0);
                     }
-                    else if (strcmp(car->sval, EVAL_IF) == 0     ||
-                             strcmp(car->sval, EVAL_LAMBDA) == 0 ) {
+                    else if (strcmp(car->sval, EVAL_IF) == 0) {
+                        // an if special form
+                        ret = cell_if(cell, env);
+                    }
+                    else if (strcmp(car->sval, EVAL_LAMBDA) == 0 ) {
                         printf("%s not implemented\n", car->sval);
                     }
                     else {
@@ -134,3 +138,28 @@ static Cell* cell_set_value(Cell* cell, Env* env, int create)
     return ret;
 }
 
+// Execute an if special form
+static Cell* cell_if(Cell* cell, Env* env)
+{
+    Cell* ret = nil;
+    do {
+        Cell* args[4];
+        int pos = 0;
+        for (Cell* c = cell; c && c != nil && pos < 4; c = c->cons.cdr) {
+            args[pos++] = c->cons.car;
+        }
+        if (!args[1] || !args[2] || !args[3]) {
+            break;
+        }
+
+        Cell* test = cell_eval(args[1], env);
+        if (test == bool_t) {
+            ret = cell_eval(args[2], env);
+        }
+        else if (test == bool_f) {
+            ret = cell_eval(args[3], env);
+        }
+    } while (0);
+
+    return ret;
+}
