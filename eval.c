@@ -147,7 +147,7 @@ static Cell* cell_set_value(Cell* cell, Env* env, int create)
         for (Cell* c = cell; c && c != nil && pos < 3; c = c->cons.cdr) {
             args[pos++] = c->cons.car;
         }
-        if (!args[1] || !args[2]) {
+        if (pos != 3 || !args[1] || !args[2]) {
             break;
         }
 
@@ -173,7 +173,7 @@ static Cell* cell_if(Cell* cell, Env* env)
         for (Cell* c = cell; c && c != nil && pos < 4; c = c->cons.cdr) {
             args[pos++] = c->cons.car;
         }
-        if (!args[1] || !args[2] || !args[3]) {
+        if (pos != 4 || !args[1] || !args[2] || !args[3]) {
             break;
         }
 
@@ -199,7 +199,7 @@ static Cell* cell_lambda(Cell* cell, Env* env)
         for (Cell* c = cell; c && c != nil && pos < 3; c = c->cons.cdr) {
             args[pos++] = c->cons.car;
         }
-        if (!args[1] || !args[2]) {
+        if (pos != 3 || !args[1] || !args[2]) {
             break;
         }
 
