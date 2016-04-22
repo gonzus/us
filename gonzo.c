@@ -116,6 +116,7 @@ static void test_parse(void)
         printf("Parsing [%s]:\n", code);
         parser_parse(parser, code);
         Cell* c = parser_result(parser);
+        printf("=> ");
         cell_print(c, stdout, 1);
     }
     parser_destroy(parser);
@@ -134,6 +135,17 @@ static void test_eval(void)
         { " (+ 3 4) " },
         { " (+ 1 2 3 4) " },
         { " (+ 3 (+ 4 5) (+ 1 2)) " },
+        { " (- 9) " },
+        { " (- 9 4) " },
+        { " (- 9 4 2) " },
+        { " (- 9.0) " },
+        { " (- 9.0 4.0) " },
+        { " (- 9.0 4.0 2.0) " },
+        { " (- 9 4.0) " },
+        { " (- 9 4.0 2) " },
+        { " (- 9 4.0 2.0) " },
+        { " (- 9 4) " },
+        { " (- 9 4 2.0) " },
         { " (* 2 3) " },
         { " (* 1 2 3 4) " },
         { " (* 2 (* 3 4) (* 5 6)) " },
@@ -141,6 +153,7 @@ static void test_eval(void)
         { " (+ 3 4.5) " },
         { " (+ 3.5 4.5) " },
         { " (+) " },
+        { " (-) " },
         { " (* 3 4.5) " },
         { " (* 3.5 4.5) " },
         { " (*) " },
@@ -174,11 +187,11 @@ static void test_eval(void)
         { " (define positive (lambda (x) (> x 0))) " },
         { " (positive  7) " },
         { " (positive -7) " },
-        { " (define fact (lambda (n) (if (< n 2) 1 (* n (fact (+ n -1)))))) " },
+        { " (define fact (lambda (n) (if (< n 2) 1 (* n (fact (- n 1)))))) " },
         { " (fact 5) " },
         { " (fact 10) " },
         { " (fact 20) " },
-        { " (define fib (lambda (n) (if (< n 2) n (+ (fib (+ n -1)) (fib (+ n -2)))))) " },
+        { " (define fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))) " },
         { " (fib 10) " },
     };
 
@@ -188,6 +201,8 @@ static void test_eval(void)
     Symbol* sym;
     sym = env_lookup(env, "+", 1);
     sym->value = cell_create_native("+", func_add);
+    sym = env_lookup(env, "-", 1);
+    sym->value = cell_create_native("-", func_sub);
     sym = env_lookup(env, "*", 1);
     sym->value = cell_create_native("*", func_mul);
     sym = env_lookup(env, "=", 1);

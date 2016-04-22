@@ -4,6 +4,7 @@
 // Native implementations of several procedures
 
 Cell* func_add(Cell* args);
+Cell* func_sub(Cell* args);
 Cell* func_mul(Cell* args);
 
 // TODO: find out if this should be
