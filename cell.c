@@ -3,10 +3,14 @@
 #include <string.h>
 #include "cell.h"
 
-#define CELL_NIL "()"
+// These are special values that have a single unique instance
+static Cell cell_nil    = { CELL_NONE, {0} };
+static Cell cell_bool_t = { CELL_INT , {1} };
+static Cell cell_bool_f = { CELL_INT , {0} };
 
-static Cell cell_nil;
-Cell* nil = &cell_nil;
+Cell* nil    = &cell_nil;
+Cell* bool_t = &cell_bool_t;
+Cell* bool_f = &cell_bool_f;
 
 void cell_destroy(Cell* cell)
 {
@@ -155,7 +159,24 @@ Cell* cell_cdr(const Cell* cell)
 
 static void cell_print_all(const Cell* cell, FILE* fp)
 {
+    if (cell == nil) {
+        fputs(CELL_STR_NIL, fp);
+        return;
+    }
+    if (cell == bool_t) {
+        fputs(CELL_STR_BOOL_T, fp);
+        return;
+    }
+    if (cell == bool_f) {
+        fputs(CELL_STR_BOOL_F, fp);
+        return;
+    }
+
     switch (cell->tag) {
+        case CELL_NONE:
+            fputs(CELL_STR_NIL, fp);
+            break;
+
         case CELL_INT:
             fprintf(fp, "%ld", cell->ival);
             break;
@@ -178,10 +199,7 @@ static void cell_print_all(const Cell* cell, FILE* fp)
 
         case CELL_CONS: {
             const Cons* cons = &cell->cons;
-            if (cons->car == nil) {
-                fputs(CELL_NIL, fp);
-            }
-            else if (cons->car->tag == CELL_CONS) {
+            if (cons->car->tag == CELL_CONS) {
                 fputc('(', fp);
                 cell_print_all(cons->car, fp);
                 fputc(')', fp);
@@ -191,6 +209,7 @@ static void cell_print_all(const Cell* cell, FILE* fp)
             }
 
             if (cons->cdr == nil) {
+                // end of list, nothing else to do
             }
             else if (cons->cdr->tag == CELL_CONS) {
                 fputc(' ', fp);
@@ -207,17 +226,13 @@ static void cell_print_all(const Cell* cell, FILE* fp)
 
 void cell_print(const Cell* cell, FILE* fp, int eol)
 {
-    if (cell == nil) {
-        fputs(CELL_NIL, fp);
+    if (cell->tag != CELL_CONS) {
+        cell_print_all(cell, fp);
     }
     else {
-       if (cell->tag == CELL_CONS) {
-           fputc('(', fp);
-       }
-       cell_print_all(cell, fp);
-       if (cell->tag == CELL_CONS) {
-           fputc(')', fp);
-       }
+        fputc('(', fp);
+        cell_print_all(cell, fp);
+        fputc(')', fp);
     }
 
     if (eol) {

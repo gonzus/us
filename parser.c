@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "parser.h"
 
 #define PARSER_DEFAULT_DEPTH 128
@@ -267,7 +268,17 @@ static int token(Parser* parser, int token)
             break;
 
         case TOKEN_SYMBOL:
-            cell = cell_create_symbol(tok, len);
+            if (memcmp(tok, CELL_STR_BOOL_T, sizeof(CELL_STR_BOOL_T) - 1) == 0) {
+                // Special case: #t
+                cell = bool_t;
+            }
+            else if (memcmp(tok, CELL_STR_BOOL_F, sizeof(CELL_STR_BOOL_F) - 1) == 0) {
+                // Special case: #f
+                cell = bool_f;
+            }
+            else {
+                cell = cell_create_symbol(tok, len);
+            }
             break;
 
         case TOKEN_LPAREN:
@@ -278,6 +289,7 @@ static int token(Parser* parser, int token)
 
         case TOKEN_RPAREN:
             cell = parser->exp[parser->level].frst;
+            // Special case: () => nil
             if (!cell) {
                 cell = nil;
             }

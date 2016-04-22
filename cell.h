@@ -10,7 +10,8 @@
 // This thing leaks like a boat made of hay.
 // Need to decide wether we will use ref counting or GC.
 
-#define CELL_NONE   0  // Needed?
+// Types of cell
+#define CELL_NONE   0  // Needed? Special value nil uses it
 #define CELL_INT    1  // Integers => long
 #define CELL_REAL   2  // Reals => double
 #define CELL_STRING 3  // Strings
@@ -18,20 +19,27 @@
 #define CELL_CONS   5  // Cons cells
 #define CELL_NATIVE 6  // Native functions
 
-// Guess what these members are...
+// Printable forms of these special values
+#define CELL_STR_NIL    "()"
+#define CELL_STR_BOOL_T "#t"
+#define CELL_STR_BOOL_F "#f"
+
+// A cons cell; guess what these members are...
 typedef struct Cons {
     struct Cell* car;
     struct Cell* cdr;
 } Cons;
 
+// Function prototype for native implementation of procs
 typedef struct Cell* (NativeFunc)(struct Cell* args);
 
+// A native cell
 typedef struct Native {
     const char* label;
     NativeFunc* func;
 } Native;
 
-// A tagged anonymous union goes in here:
+// Finally, definition of a cell
 typedef struct Cell {
     unsigned char tag;
     union {
@@ -43,8 +51,10 @@ typedef struct Cell {
     };
 } Cell;
 
-// Let's just have a single nil value
+// Let's just have a single value for nil, #t and #f
 extern Cell* nil;
+extern Cell* bool_t;
+extern Cell* bool_f;
 
 // Destroy a cell
 void cell_destroy(Cell* cell);
