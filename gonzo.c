@@ -167,6 +167,10 @@ static void test_eval(void)
         { " (= + *) " },
         { " (if (= 7 11) \"Crazy!\" \"Sane\")  " },
         { " (if (= \"abc\" \"abc\") (+ 3 4) (- 5 6)) " },
+        { " (if (> 13 0)  \"Positive!\" \"Negative\")  " },
+        { " (if (> 13 20) \"Positive!\" \"Negative\")  " },
+        { " (if (< 13 0)  \"Positive!\" \"Negative\")  " },
+        { " (if (< 13 20) \"Positive!\" \"Negative\")  " },
     };
 
     Parser* parser = parser_create(0);
@@ -176,9 +180,13 @@ static void test_eval(void)
     sym = env_lookup(env, "+", 1);
     sym->value = cell_create_native("+", func_add);
     sym = env_lookup(env, "*", 1);
-    sym->value = cell_create_native("+", func_mul);
+    sym->value = cell_create_native("*", func_mul);
     sym = env_lookup(env, "=", 1);
-    sym->value = cell_create_native("+", func_eq);
+    sym->value = cell_create_native("=", func_eq);
+    sym = env_lookup(env, ">", 1);
+    sym->value = cell_create_native(">", func_gt);
+    sym = env_lookup(env, "<", 1);
+    sym->value = cell_create_native("<", func_lt);
 
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;

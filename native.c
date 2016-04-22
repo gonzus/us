@@ -79,3 +79,47 @@ Cell* func_eq(Cell* args)
     printf("EQ => %d\n", ok);
     return ok ? bool_t : bool_f;
 }
+
+Cell* func_gt(Cell* args)
+{
+    int ok = 1;
+    int pos = 0;
+    Cell* mem = 0;
+    CELL_LOOP("gt", pos, args, {
+        if (!pos) { mem = arg; continue; }
+        if (mem->tag != arg->tag) { ok = 0; break; }
+        switch (mem->tag) {
+            case CELL_INT   : ok = mem->ival > arg->ival; break;
+            case CELL_REAL  : ok = mem->rval > arg->rval; break;
+            case CELL_STRING:
+            case CELL_SYMBOL: ok = strcmp(mem->sval, arg->sval) > 0; break;
+            default: ok = 0; break;
+        }
+        if (!ok) { break; }
+        mem = arg;
+    });
+    printf("GT => %d\n", ok);
+    return ok ? bool_t : bool_f;
+}
+
+Cell* func_lt(Cell* args)
+{
+    int ok = 1;
+    int pos = 0;
+    Cell* mem = 0;
+    CELL_LOOP("lt", pos, args, {
+        if (!pos) { mem = arg; continue; }
+        if (mem->tag != arg->tag) { ok = 0; break; }
+        switch (mem->tag) {
+            case CELL_INT   : ok = mem->ival < arg->ival; break;
+            case CELL_REAL  : ok = mem->rval < arg->rval; break;
+            case CELL_STRING:
+            case CELL_SYMBOL: ok = strcmp(mem->sval, arg->sval) < 0; break;
+            default: ok = 0; break;
+        }
+        if (!ok) { break; }
+        mem = arg;
+    });
+    printf("LT => %d\n", ok);
+    return ok ? bool_t : bool_f;
+}

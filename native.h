@@ -10,4 +10,7 @@ Cell* func_mul(Cell* args);
 // eq, eqv, equals, or something else...
 Cell* func_eq(Cell* args);
 
+Cell* func_gt(Cell* args);
+Cell* func_lt(Cell* args);
+
 #endif
