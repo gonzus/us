@@ -1,41 +1,81 @@
 #include <stdio.h>
+#include <string.h>
 #include "cell.h"
 #include "native.h"
 
+#define CELL_LOOP(name, pos, args, body) \
+    do { \
+        printf("Entering native %s\n", name); \
+        for (Cell* c = args; c && c != nil; c = c->cons.cdr, ++pos) { \
+            Cell* arg = c->cons.car; \
+            printf("Arg #%d tag %d\n", pos, arg->tag); \
+            do body while (0); \
+        } \
+        printf("Leaving native %s\n", name); \
+    } while (0)
+
 Cell* func_add(Cell* args)
 {
-    long ret = 0;
-    printf("Entering native add\n");
+    long iret = 0;
+    double rret = 0.0;
+    int isaw = 0;
+    int rsaw = 0;
+    int ok = 1;
     int pos = 0;
-    for (Cell* c = args; c != nil; c = c->cons.cdr, ++pos) {
-        Cell* arg = c->cons.car;
-        printf("Arg #%d tag %d\n", pos, arg->tag);
-        if (arg->tag != CELL_INT) {
-            continue;
+    CELL_LOOP("add", pos, args, {
+        switch (arg->tag) {
+            case CELL_INT : ++isaw; iret += arg->ival; break;
+            case CELL_REAL: ++rsaw; rret += arg->rval; break;
+            default: ok = 0; break;
         }
-        ret += arg->ival;
-    }
-    printf("Leaving native add: %ld\n", ret);
-    return cell_create_int(ret);
-
+        if (!ok) break;
+    });
+    if (!ok) return nil;
+    if (rsaw) return cell_create_real(rret + iret);
+    if (isaw) return cell_create_int(iret);
     return nil;
 }
 
 Cell* func_mul(Cell* args)
 {
-    long ret = 1;
-    printf("Entering native mul\n");
+    long iret = 1;
+    double rret = 1.0;
+    int isaw = 0;
+    int rsaw = 0;
+    int ok = 1;
     int pos = 0;
-    for (Cell* c = args; c != nil; c = c->cons.cdr, ++pos) {
-        Cell* arg = c->cons.car;
-        printf("Arg #%d tag %d\n", pos, arg->tag);
-        if (arg->tag != CELL_INT) {
-            continue;
+    CELL_LOOP("mul", pos, args, {
+        switch (arg->tag) {
+            case CELL_INT : ++isaw; iret *= arg->ival; break;
+            case CELL_REAL: ++rsaw; rret *= arg->rval; break;
+            default: ok = 0; break;
         }
-        ret *= arg->ival;
-    }
-    printf("Leaving native mul: %ld\n", ret);
-    return cell_create_int(ret);
-
+        if (!ok) break;
+    });
+    if (!ok) return nil;
+    if (rsaw) return cell_create_real(rret * iret);
+    if (isaw) return cell_create_int(iret);
     return nil;
+}
+
+Cell* func_eq(Cell* args)
+{
+    int ok = 1;
+    int pos = 0;
+    Cell* mem = 0;
+    CELL_LOOP("eq", pos, args, {
+        if (!pos) { mem = arg; continue; }
+        if (mem->tag != arg->tag) { ok = 0; break; }
+        switch (mem->tag) {
+            case CELL_INT   : ok = mem->ival == arg->ival; break;
+            case CELL_REAL  : ok = mem->rval == arg->rval; break;
+            case CELL_STRING:
+            case CELL_SYMBOL: ok = strcmp(mem->sval, arg->sval) == 0; break;
+            case CELL_NATIVE: ok = mem->nval.func == arg->nval.func; break;
+            default: ok = 0; break;
+        }
+        if (!ok) { break; }
+    });
+    printf("EQ => %d\n", ok);
+    return ok ? bool_t : bool_f;
 }
