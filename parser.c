@@ -31,12 +31,8 @@ Parser* parser_create(int depth)
     Parser* parser = (Parser*) malloc(sizeof(Parser));
     parser->depth = depth <= 0 ?  PARSER_DEFAULT_DEPTH : depth;
     parser->exp = calloc(parser->depth, sizeof(Expression));
-    parser->level = 0;
 
-    parser->state = STATE_NORMAL;
-    parser->str = 0;
-    parser->pos = 0;
-    parser->beg = 0;
+    parser_reset(parser, 0);
     return parser;
 }
 
@@ -251,7 +247,6 @@ static int token(Parser* parser, int token)
         printf(": [%*.*s] (%d)", len, len, tok, len);
     }
     printf("\n");
-    fflush(stdout);
 
     Cell* cell = 0;
     switch (token) {
@@ -289,14 +284,13 @@ static int token(Parser* parser, int token)
 
         case TOKEN_RPAREN:
             cell = parser->exp[parser->level].frst;
+            --parser->level;
             // Special case: () => nil
             if (!cell) {
                 cell = nil;
             }
-            --parser->level;
             break;
 
-        case TOKEN_NONE:
         default:
             break;
     }
