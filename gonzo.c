@@ -127,7 +127,10 @@ static void test_eval(void)
         const char* code;
     } data[] = {
         { " 11 " },
+        { " () " },
         { " -3.1415 " },
+        { " #t " },
+        { " #f " },
         { " (+ 3 4) " },
         { " (+ 1 2 3 4) " },
         { " (+ 3 (+ 4 5) (+ 1 2)) " },
@@ -135,6 +138,12 @@ static void test_eval(void)
         { " (* 1 2 3 4) " },
         { " (* 2 (* 3 4) (* 5 6)) " },
         { " (* 2 (+ 3 (* 5 4)) (+ (* 5 2) 6)) " },
+        { " (+ 3 4.5) " },
+        { " (+ 3.5 4.5) " },
+        { " (+) " },
+        { " (* 3 4.5) " },
+        { " (* 3.5 4.5) " },
+        { " (*) " },
         { " (quote (+ 3 4)) " },
         { " (define gonzus 11) " },
         { " gonzus " },
@@ -142,7 +151,22 @@ static void test_eval(void)
         { " gonzus " },
         { " (set! invalid (+ 2 3)) " },
         { " invalid " },
+        { " (=) " },
+        { " (= 7) " },
+        { " (= 7 11) " },
+        { " (= 11 11) " },
+        { " (= 7 11.0) " },
+        { " (= 7.0 11) " },
+        { " (= 7. 11.0) " },
+        { " (= 7.0 7.0) " },
+        { " (= 7 11 8) " },
+        { " (= 7 7 7) " },
+        { " (= \"Bilbo\" \"Bilbo\") " },
+        { " (= \"Bilbo\" \"Frodo\") " },
+        { " (= + +) " },
+        { " (= + *) " },
         { " (if (= 7 11) \"Crazy!\" \"Sane\")  " },
+        { " (if (= \"abc\" \"abc\") (+ 3 4) (- 5 6)) " },
     };
 
     Parser* parser = parser_create(0);
@@ -153,6 +177,8 @@ static void test_eval(void)
     sym->value = cell_create_native("+", func_add);
     sym = env_lookup(env, "*", 1);
     sym->value = cell_create_native("+", func_mul);
+    sym = env_lookup(env, "=", 1);
+    sym->value = cell_create_native("+", func_eq);
 
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;
