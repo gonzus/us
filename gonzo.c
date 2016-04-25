@@ -5,6 +5,7 @@
 #include "eval.h"
 #include "native.h"
 
+#if 0
 static void test_nil(void)
 {
     printf("%s => ", "()");
@@ -121,6 +122,7 @@ static void test_parse(void)
     }
     parser_destroy(parser);
 }
+#endif
 
 static Env* make_global_env(void)
 {
@@ -145,6 +147,7 @@ static Env* make_global_env(void)
     return env;
 }
 
+#if 0
 static void test_eval(void)
 {
     static struct {
@@ -281,6 +284,7 @@ static void test_eval(void)
     env_destroy(env);
     parser_destroy(parser);
 }
+#endif
 
 static void repl(void)
 {
