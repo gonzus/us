@@ -122,11 +122,35 @@ static void test_parse(void)
     parser_destroy(parser);
 }
 
+static Env* make_global_env(void)
+{
+    struct Data {
+        const char* name;
+        NativeFunc* func;
+    } data[] = {
+        { "+"       , func_add },
+        { "-"       , func_sub },
+        { "*"       , func_mul },
+        { "/"       , func_div },
+        { "="       , func_eq },
+        { ">"       , func_gt },
+        { "<"       , func_lt },
+        { "begin"   , func_begin },
+    };
+    Env* env = env_create(0, 0);
+    for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
+        Symbol* sym = env_lookup(env, data[j].name, 1);
+        sym->value = cell_create_native(data[j].name, data[j].func);
+    }
+    return env;
+}
+
 static void test_eval(void)
 {
     static struct {
         const char* code;
     } data[] = {
+#if 1
         { " 11 " },
         { " () " },
         { " -3.1415 " },
@@ -232,27 +256,18 @@ static void test_eval(void)
         { " (/ 24 4.0 5.0) " },
         { " (/ 24.0 4.0 3.0) " },
         { " (/ 24.0 4.0 5.0) " },
+#endif
+        { " (define make-account (lambda (balance) (lambda (amt) (begin (set! balance (+ balance amt)) balance)))) " },
+        { " (define acct1 (make-account 100.0)) " },
+        { " (acct1 -20.0) " },
+        { " (define acct2 (make-account 200.0)) " },
+        { " (acct2 -20.0) " },
+        { " (acct1 -10.0) " },
+        { " (acct2 -20.0) " },
     };
 
     Parser* parser = parser_create(0);
-
-    Env* env = env_create(0, 0);
-    Symbol* sym;
-    sym = env_lookup(env, "+", 1);
-    sym->value = cell_create_native("+", func_add);
-    sym = env_lookup(env, "-", 1);
-    sym->value = cell_create_native("-", func_sub);
-    sym = env_lookup(env, "*", 1);
-    sym->value = cell_create_native("*", func_mul);
-    sym = env_lookup(env, "/", 1);
-    sym->value = cell_create_native("/", func_div);
-    sym = env_lookup(env, "=", 1);
-    sym->value = cell_create_native("=", func_eq);
-    sym = env_lookup(env, ">", 1);
-    sym->value = cell_create_native(">", func_gt);
-    sym = env_lookup(env, "<", 1);
-    sym->value = cell_create_native("<", func_lt);
-
+    Env* env = make_global_env();
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;
         printf("Parsing [%s]:\n", code);
@@ -263,7 +278,28 @@ static void test_eval(void)
         printf("=> ");
         cell_print(r, stdout, 1);
     }
+    env_destroy(env);
+    parser_destroy(parser);
+}
 
+static void repl(void)
+{
+    Parser* parser = parser_create(0);
+    Env* env = make_global_env();
+    while (1) {
+        char buf[1024];
+        fputs("> ", stdout);
+        //buf[0] = '\0';
+        if (!fgets(buf, 1024, stdin)) {
+            break;
+        }
+        parser_parse(parser, buf);
+        Cell* c = parser_result(parser);
+        cell_print(c, stdout, 1);
+        const Cell* r = cell_eval(c, env);
+        printf("=> ");
+        cell_print(r, stdout, 1);
+    }
     env_destroy(env);
     parser_destroy(parser);
 }
@@ -271,6 +307,7 @@ static void test_eval(void)
 int main(int argc, char* argv[])
 {
     printf("== START ==========\n");
+#if 0
     test_nil();
     test_string();
     test_number();
@@ -280,7 +317,10 @@ int main(int argc, char* argv[])
     test_symbol();
     test_parse();
     test_eval();
+#endif
     printf("== END ============\n");
+
+    repl();
 
     return 0;
 }
