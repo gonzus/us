@@ -256,3 +256,14 @@ Cell* func_lt(Cell* args)
     printf("LT => %d\n", ok);
     return ok ? bool_t : bool_f;
 }
+
+Cell* func_begin(Cell* args)
+{
+    Cell* ret = nil;
+    int pos = 0;
+    CELL_LOOP("begin", pos, args, {
+        ret = arg;
+    });
+    return ret;
+}
+
