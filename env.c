@@ -5,6 +5,7 @@
 
 void env_destroy(Env* env)
 {
+    printf("ENV: destroying %p, %d buckets, parent %p\n", env, env->size, env->parent);
     for (int j = 0; j < env->size; ++j) {
         Symbol* t = 0;
         for (Symbol* s = env->table[j]; s != 0; ) {
@@ -26,6 +27,7 @@ Env* env_create(int size, Env* parent)
     env->parent = parent;
     env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
     env->table = calloc(env->size, sizeof(Symbol));
+    printf("ENV: created %p, %d buckets, parent %p\n", env, env->size, env->parent);
     return env;
 }
 
