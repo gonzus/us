@@ -6,6 +6,7 @@
 Cell* func_add(Cell* args);
 Cell* func_sub(Cell* args);
 Cell* func_mul(Cell* args);
+Cell* func_div(Cell* args);
 
 // TODO: find out if this should be
 // eq, eqv, equals, or something else...
