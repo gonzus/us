@@ -118,7 +118,10 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
         // printf("Proc, arg #%d [%s]\n", pos, par->sval);
     }
     ret = cell_eval(proc->pval.body, proc_env);
-    env_destroy(proc_env);
+
+    // We cannot destroy the proc_env variable, because it may have been
+    // "captured" and will be returned to the caller; this  happens when
+    // returning a lambda as the result of calling a procedure
     return ret;
 }
 
