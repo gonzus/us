@@ -32,8 +32,8 @@ Cell* func_add(Cell* args)
     int pos = 0;
     CELL_LOOP("add", pos, args, {
         switch (arg->tag) {
-            case CELL_INT : ++isaw; iret += arg->ival; break;
-            case CELL_REAL: ++rsaw; rret += arg->rval; break;
+            case CELL_INT : isaw = 1; iret += arg->ival; break;
+            case CELL_REAL: rsaw = 1; rret += arg->rval; break;
             default: ok = 0; break;
         }
         if (!ok) break;
@@ -55,15 +55,15 @@ Cell* func_sub(Cell* args)
     CELL_LOOP("sub", pos, args, {
         if (pos == 0) {
             switch (arg->tag) {
-                case CELL_INT : ++isaw; iret = arg->ival; break;
-                case CELL_REAL: ++rsaw; rret = arg->rval; break;
+                case CELL_INT : isaw = 1; iret = arg->ival; break;
+                case CELL_REAL: rsaw = 1; rret = arg->rval; break;
                 default: ok = 0; break;
             }
         }
         else {
             switch (arg->tag) {
-                case CELL_INT : ++isaw; iret -= arg->ival; break;
-                case CELL_REAL: ++rsaw; rret -= arg->rval; break;
+                case CELL_INT : isaw = 1; iret -= arg->ival; break;
+                case CELL_REAL: rsaw = 1; rret -= arg->rval; break;
                 default: ok = 0; break;
             }
         }
@@ -86,8 +86,8 @@ Cell* func_mul(Cell* args)
     int pos = 0;
     CELL_LOOP("mul", pos, args, {
         switch (arg->tag) {
-            case CELL_INT : ++isaw; iret *= arg->ival; break;
-            case CELL_REAL: ++rsaw; rret *= arg->rval; break;
+            case CELL_INT : isaw = 1; iret *= arg->ival; break;
+            case CELL_REAL: rsaw = 1; rret *= arg->rval; break;
             default: ok = 0; break;
         }
         if (!ok) break;
