@@ -70,6 +70,7 @@ Cell* func_sub(Cell* args)
         if (!ok) break;
     });
     if (!ok) return nil;
+    if (pos == 0) return nil;
     if (pos == 1) { iret = -iret; rret = -rret; }
     if (rsaw) return cell_create_real(rret + iret);
     if (isaw) return cell_create_int(iret);
