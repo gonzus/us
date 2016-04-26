@@ -17,62 +17,60 @@ static Cell* cell_lambda(Cell* cell, Env* env);
 
 Cell* cell_eval(Cell* cell, Env* env)
 {
-    Symbol* symbol = 0;
-    Cell* ret = nil;
-    Cell* car = nil;
-    switch (cell->tag) {
-        // literals
-        case CELL_INT:
-        case CELL_REAL:
-        case CELL_STRING:
-        case CELL_NATIVE:
-            ret = cell;
-            break;
-
-        // variable reference
-        case CELL_SYMBOL:
-            symbol = env_lookup(env, cell->sval, 0);
-            if (symbol) {
-                ret = symbol->value;
-            }
-            break;
-
-        // a list; action will depend on its car
-        case CELL_CONS:
-            car = cell->cons.car;
-            switch (car->tag) {
-                case CELL_SYMBOL:
-                    if (strcmp(car->sval, EVAL_QUOTE) == 0) {
-                        // a quote special form
-                        if (cell->cons.cdr) {
-                            ret = cell->cons.cdr->cons.car;
-                        }
-                    }
-                    else if (strcmp(car->sval, EVAL_DEFINE) == 0) {
-                        // a define special form
-                        ret = cell_set_value(cell, env, 1);
-                    }
-                    else if (strcmp(car->sval, EVAL_SET) == 0) {
-                        // a set! special form
-                        ret = cell_set_value(cell, env, 0);
-                    }
-                    else if (strcmp(car->sval, EVAL_IF) == 0) {
-                        // an if special form
-                        ret = cell_if(cell, env);
-                    }
-                    else if (strcmp(car->sval, EVAL_LAMBDA) == 0 ) {
-                        // a lambda special form
-                        ret = cell_lambda(cell, env);
-                    }
-                    else {
-                        // a function invocation
-                        ret = cell_apply(cell, env);
-                    }
-                    break;
-            }
-            break;
+    if (cell->tag == CELL_SYMBOL) {
+        Cell* ret = nil;
+        Symbol* symbol = env_lookup(env, cell->sval, 0);
+        if (symbol) {
+            ret = symbol->value;
+            printf("EVAL: looked up symbol [%s] in env %p => %p (tag %d)\n", cell->sval, env, ret, ret->tag);
+        }
+        return ret;
     }
 
+    if (cell->tag != CELL_CONS) {
+        return cell;
+    }
+
+    Cell* car = cell->cons.car;
+    printf("EVAL: evaluating a cons cell, car is %p (tag %d)\n", car, car->tag);
+    int done = 0;
+    Cell* ret = nil;
+    if (car->tag == CELL_SYMBOL) {
+        if (strcmp(car->sval, EVAL_QUOTE) == 0) {
+            // a quote special form
+            done = 1;
+            if (cell->cons.cdr) {
+                ret = cell->cons.cdr->cons.car;
+            }
+        }
+        else if (strcmp(car->sval, EVAL_DEFINE) == 0) {
+            // a define special form
+            done = 1;
+            ret = cell_set_value(cell, env, 1);
+        }
+        else if (strcmp(car->sval, EVAL_SET) == 0) {
+            // a set! special form
+            done = 1;
+            ret = cell_set_value(cell, env, 0);
+        }
+        else if (strcmp(car->sval, EVAL_IF) == 0) {
+            // an if special form
+            done = 1;
+            ret = cell_if(cell, env);
+        }
+        else if (strcmp(car->sval, EVAL_LAMBDA) == 0 ) {
+            // a lambda special form
+            done = 1;
+            ret = cell_lambda(cell, env);
+        }
+    }
+
+    if (done) {
+        return ret;
+    }
+
+    // a function invocation
+    ret = cell_apply(cell, env);
     return ret;
 }
 
