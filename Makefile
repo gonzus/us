@@ -19,7 +19,7 @@ gonzo.o: gonzo.c
 gonzo: gonzo.o libus.a
 	$(CC) $(CFLAGS) -o$@ gonzo.o -L. -lus
 
-all: libus.a
+all: gonzo
 
 clean:
 	rm -f *.o *.a *~
