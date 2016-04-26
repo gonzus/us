@@ -117,7 +117,10 @@ static void test_parse(void)
         printf("Parsing [%s]:\n", code);
         parser_parse(parser, code);
         Cell* c = parser_result(parser);
-        printf("=> ");
+        if (!c) {
+            continue;
+        }
+        printf("[%p] => ", c);
         cell_print(c, stdout, 1);
     }
     parser_destroy(parser);
@@ -130,13 +133,16 @@ static Env* make_global_env(void)
         const char* name;
         NativeFunc* func;
     } data[] = {
-        { "+"       , func_add },
-        { "-"       , func_sub },
-        { "*"       , func_mul },
-        { "/"       , func_div },
-        { "="       , func_eq },
-        { ">"       , func_gt },
-        { "<"       , func_lt },
+        { "+"       , func_add   },
+        { "-"       , func_sub   },
+        { "*"       , func_mul   },
+        { "/"       , func_div   },
+        { "="       , func_eq    },
+        { ">"       , func_gt    },
+        { "<"       , func_lt    },
+        { "cons"    , func_cons  },
+        { "car"     , func_car   },
+        { "cdr"     , func_cdr   },
         { "begin"   , func_begin },
     };
     Env* env = env_create(0, 0);
@@ -276,9 +282,12 @@ static void test_eval(void)
         printf("Parsing [%s]:\n", code);
         parser_parse(parser, code);
         Cell* c = parser_result(parser);
+        if (!c) {
+            continue;
+        }
         cell_print(c, stdout, 1);
         const Cell* r = cell_eval(c, env);
-        printf("=> ");
+        printf("[%p] => ", r);
         cell_print(r, stdout, 1);
     }
     env_destroy(env);
@@ -297,11 +306,18 @@ static void repl(void)
         if (!fgets(buf, 1024, stdin)) {
             break;
         }
+        printf("--> WILL PARSE [%s] <--\n", buf);
         parser_parse(parser, buf);
         Cell* c = parser_result(parser);
-        cell_print(c, stdout, 1);
+        if (!c) {
+            continue;
+        }
+        printf("==> EVAL [");
+        cell_print(c, stdout, 0);
+        printf("] <==\n");
+
         const Cell* r = cell_eval(c, env);
-        printf("=> ");
+        printf("==> [%p] ", r);
         cell_print(r, stdout, 1);
     }
     env_destroy(env);
@@ -310,7 +326,6 @@ static void repl(void)
 
 int main(int argc, char* argv[])
 {
-    printf("== START ==========\n");
 #if 0
     test_nil();
     test_string();
@@ -322,8 +337,8 @@ int main(int argc, char* argv[])
     test_parse();
     test_eval();
 #endif
-    printf("== END ============\n");
 
+    printf("Special values: nil = %p, #t = %p, #f = %p\n", nil, bool_t, bool_f);
     repl();
 
     return 0;
