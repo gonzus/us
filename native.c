@@ -8,13 +8,13 @@
         printf("Entering native %s\n", name); \
         for (Cell* c = args; c && c != nil; c = c->cons.cdr, ++pos) { \
             Cell* arg = c->cons.car; \
-            printf("Arg #%d tag %d = ", pos, arg->tag); \
+            printf("Arg #%d tag %d", pos, arg->tag); \
             switch (arg->tag) { \
-                case CELL_INT   : printf("%ld", arg->ival); break; \
-                case CELL_REAL  : printf("%lf", arg->rval); break; \
+                case CELL_INT   : printf(" = %ld", arg->ival); break; \
+                case CELL_REAL  : printf(" = %lf", arg->rval); break; \
                 case CELL_STRING: \
-                case CELL_SYMBOL: printf("\"%s\"", arg->sval); break; \
-                case CELL_NATIVE: printf("<%s>", arg->nval.label); break; \
+                case CELL_SYMBOL: printf(" = \"%s\"", arg->sval); break; \
+                case CELL_NATIVE: printf(" = <%s>", arg->nval.label); break; \
             } \
             printf("\n"); \
             do body while (0); \
@@ -256,6 +256,57 @@ Cell* func_lt(Cell* args)
     printf("LT => %d\n", ok);
     return ok ? bool_t : bool_f;
 }
+
+Cell* func_cons(Cell* args)
+{
+    Cell* ret = nil;
+    Cell* mem[2];
+    int pos = 0;
+    CELL_LOOP("cons", pos, args, {
+        if (pos >= 2) break;
+        mem[pos] = arg;
+    });
+    if (pos == 2) {
+        ret = cell_cons(mem[0], mem[1]);
+    }
+    printf("CONS: %p\n", ret);
+    return ret;
+}
+
+Cell* func_car(Cell* args)
+{
+    Cell* ret = nil;
+    Cell* mem[1];
+    int pos = 0;
+    CELL_LOOP("car", pos, args, {
+        if (pos >= 1) break;
+        mem[pos] = arg;
+    });
+    if (pos == 1) {
+        ret = cell_car(mem[0]);
+    }
+    printf("CAR: %p\n", ret);
+    // cell_print(ret, stdout, 1);
+    return ret;
+}
+
+Cell* func_cdr(Cell* args)
+{
+    Cell* ret = nil;
+    Cell* mem[1];
+    int pos = 0;
+    CELL_LOOP("cdr", pos, args, {
+        if (pos >= 1) break;
+        mem[pos] = arg;
+    });
+    if (pos == 1) {
+        ret = cell_cdr(mem[0]);
+    }
+    printf("CDR: %p\n", ret);
+    // cell_print(ret, stdout, 1);
+    return ret;
+}
+
 
 Cell* func_begin(Cell* args)
 {

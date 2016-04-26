@@ -15,6 +15,10 @@ Cell* func_eq(Cell* args);
 Cell* func_gt(Cell* args);
 Cell* func_lt(Cell* args);
 
+Cell* func_cons(Cell* args);
+Cell* func_car(Cell* args);
+Cell* func_cdr(Cell* args);
+
 Cell* func_begin(Cell* args);
 
 #endif
