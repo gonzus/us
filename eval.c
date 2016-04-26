@@ -193,12 +193,8 @@ static Cell* cell_if(Cell* cell, Env* env)
         }
 
         Cell* test = cell_eval(args[1], env);
-        if (test == bool_t) {
-            ret = cell_eval(args[2], env);
-        }
-        else if (test == bool_f) {
-            ret = cell_eval(args[3], env);
-        }
+        printf("EVAL: if => %p %p %p\n", test, bool_t, bool_f);
+        ret = cell_eval(test == bool_f ? args[3] : args[2], env);
     } while (0);
 
     return ret;
