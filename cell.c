@@ -238,7 +238,10 @@ static void cell_print_all(const Cell* cell, FILE* fp)
 
 void cell_print(const Cell* cell, FILE* fp, int eol)
 {
-    if (cell->tag != CELL_CONS) {
+    if (!cell) {
+        fputs("Cannot print a NULL cell", fp);
+    }
+    else if (cell->tag != CELL_CONS) {
         cell_print_all(cell, fp);
     }
     else {
