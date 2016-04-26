@@ -45,6 +45,7 @@ void parser_destroy(Parser* parser)
 void parser_reset(Parser* parser, const char* str)
 {
     parser->level = 0;
+    parser->exp[0].frst = parser->exp[0].last = 0;
     parser->state = STATE_NORMAL;
     parser->str = str;
     parser->pos = 0;
