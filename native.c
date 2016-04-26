@@ -200,6 +200,7 @@ Cell* func_eq(Cell* args)
         if (!pos) { mem = arg; continue; }
         if (mem->tag != arg->tag) { ok = 0; break; }
         switch (mem->tag) {
+            case CELL_NONE  : break;
             case CELL_INT   : ok = mem->ival == arg->ival; break;
             case CELL_REAL  : ok = mem->rval == arg->rval; break;
             case CELL_STRING:
