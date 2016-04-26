@@ -95,10 +95,13 @@ static Cell* cell_apply(Cell* cell, Env* env)
 
 static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
 {
+    // We create a new env with no parent, so that we will bind
+    // all args in fresh slots for the params (see below)
+    Env* proc_env = env_create(0, 0);
     Cell* ret = nil;
-    Env* proc_env = env_create(0, proc->pval.env);
     Cell* p;
     Cell* a;
+    printf("EVAL: proc on %p\n", cell);
     int pos = 0;
     for (p = proc->pval.params, a = cell->cons.cdr;
          p && p != nil && a && a != nil;
@@ -115,10 +118,13 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
             return nil;
         }
         sym->value = arg;
-        // printf("Proc, arg #%d [%s]\n", pos, par->sval);
+        printf("Proc, setting arg #%d [%s] to %p (tag %d)\n", pos, par->sval, arg, arg->tag);
     }
+    // and now we set this env's parent
+    proc_env->parent = proc->pval.env;
     ret = cell_eval(proc->pval.body, proc_env);
 
+    // TODO: check if below comment is still valid
     // We cannot destroy the proc_env variable, because it may have been
     // "captured" and will be returned to the caller; this  happens when
     // returning a lambda as the result of calling a procedure
@@ -130,6 +136,7 @@ static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc)
     Cell* ret = nil;
     Cell* args = 0;
     Cell* last = 0;
+    printf("EVAL: native [%s] on %p\n", proc->nval.label, cell);
     int pos = 0;
     for (Cell* c = cell->cons.cdr; c && c != nil; c = c->cons.cdr, ++pos) {
         Cell* arg = cell_eval(c->cons.car, env);
@@ -145,8 +152,9 @@ static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc)
             last->cons.cdr = cons;
         }
         last = cons;
-        // printf("Native, arg #%d\n", pos);
+        printf("Native, arg #%d is %p (tag %d), wrapped in %p\n", pos, arg, arg->tag, cons);
     }
+    printf("Native, calling with args %p (tag %d)\n", args, args->tag);
     ret = proc->nval.func(args);
     return ret;
 }
@@ -166,6 +174,7 @@ static Cell* cell_set_value(Cell* cell, Env* env, int create)
             break;
         }
 
+        printf("EVAL: set value for [%s] (%d)\n", args[1]->sval, create);
         Symbol* symbol = env_lookup(env, args[1]->sval, create);
         if (!symbol) {
             break;
@@ -173,6 +182,7 @@ static Cell* cell_set_value(Cell* cell, Env* env, int create)
 
         ret = cell_eval(args[2], env);
         symbol->value = ret;
+        printf("Setting value [%s] to %p (tag %d)\n", args[1]->sval, ret, ret->tag);
     } while (0);
 
     return ret;
@@ -214,6 +224,7 @@ static Cell* cell_lambda(Cell* cell, Env* env)
             break;
         }
 
+        printf("EVAL: lambda\n");
         ret = cell_create_procedure(args[1], args[2], env);
     } while (0);
 
