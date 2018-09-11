@@ -17,6 +17,7 @@ void cell_destroy(Cell* cell)
 {
     switch (cell->tag) {
         case CELL_STRING:
+        case CELL_SYMBOL:
             free((void*) cell->sval);
             break;
     }
@@ -115,13 +116,8 @@ Cell* cell_create_string(const char* value, int len)
 
 Cell* cell_create_symbol(const char* value, int len)
 {
-    Cell* cell = (Cell*) malloc(sizeof(Cell));
+    Cell* cell = cell_create_string(value, len);
     cell->tag = CELL_SYMBOL;
-
-    len = get_length(value, len);
-    cell->sval = malloc(len + 1);
-    memcpy(cell->sval, value ? value : "", len);
-    cell->sval[len] = '\0';
 
     return cell;
 }
