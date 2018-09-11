@@ -5,7 +5,7 @@
 #include "eval.h"
 #include "native.h"
 
-#if 0
+#if 1
 static void test_nil(void)
 {
     printf("%s => ", "()");
@@ -114,7 +114,7 @@ static void test_parse(void)
     Parser* parser = parser_create(0);
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;
-        printf("Parsing [%s]:\n", code);
+        printf("===== Parsing [%s]:\n", code);
         parser_parse(parser, code);
         Cell* c = parser_result(parser);
         if (!c) {
@@ -153,7 +153,7 @@ static Env* make_global_env(void)
     return env;
 }
 
-#if 0
+#if 1
 static void test_eval(void)
 {
     static struct {
@@ -279,7 +279,7 @@ static void test_eval(void)
     Env* env = make_global_env();
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;
-        printf("Parsing [%s]:\n", code);
+        printf("===== Parsing [%s]:\n", code);
         parser_parse(parser, code);
         Cell* c = parser_result(parser);
         if (!c) {
@@ -326,7 +326,7 @@ static void repl(void)
 
 int main(int argc, char* argv[])
 {
-#if 0
+#if 1
     test_nil();
     test_string();
     test_number();
@@ -338,8 +338,10 @@ int main(int argc, char* argv[])
     test_eval();
 #endif
 
+#if 0
     printf("Special values: nil = %p, #t = %p, #f = %p\n", nil, bool_t, bool_f);
     repl();
+#endif
 
     return 0;
 }
