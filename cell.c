@@ -13,6 +13,9 @@ Cell* nil    = &cell_nil;
 Cell* bool_t = &cell_bool_t;
 Cell* bool_f = &cell_bool_f;
 
+static int get_length(const char* value, int len);
+static void cell_print_all(const Cell* cell, FILE* fp);
+
 void cell_destroy(Cell* cell)
 {
     switch (cell->tag) {
@@ -30,17 +33,6 @@ Cell* cell_create_int(long value)
     cell->tag = CELL_INT;
     cell->ival = value;
     return cell;
-}
-
-static int get_length(const char* value, int len)
-{
-    if (!value || value[0] == '\0') {
-        len = 0;
-    }
-    if (len == 0 && value && value[0] != '\0') {
-        len = strlen(value);
-    }
-    return len;
 }
 
 Cell* cell_create_int_from_string(const char* value, int len)
@@ -157,12 +149,124 @@ Cell* cell_cons(Cell* car, Cell* cdr)
 
 Cell* cell_car(const Cell* cell)
 {
+    if (cell->tag != CELL_CONS) {
+        return 0;
+    }
     return cell->cons.car;
 }
 
 Cell* cell_cdr(const Cell* cell)
 {
+    if (cell->tag != CELL_CONS) {
+        return 0;
+    }
     return cell->cons.cdr;
+}
+
+void cell_print(const Cell* cell, FILE* fp, int eol)
+{
+    if (!cell) {
+        fputs("Cannot print a NULL cell", fp);
+    }
+    else if (cell->tag != CELL_CONS) {
+        cell_print_all(cell, fp);
+    }
+    else {
+        fputc('(', fp);
+        cell_print_all(cell, fp);
+        fputc(')', fp);
+    }
+
+    if (eol) {
+        fputc('\n', fp);
+    }
+}
+
+void cell_dump(const Cell* cell, FILE* fp, int eol)
+{
+    static char* stag[CELL_NEXT] = {
+        "NONE",
+        "INT",
+        "REAL",
+        "STRING",
+        "SYMBOL",
+        "CONS",
+        "PROC",
+        "NATIVE",
+    };
+
+    if (!cell) {
+        return;
+    }
+    const char* str = "???";
+    if (cell->tag < CELL_NEXT) {
+        str = stag[cell->tag];
+    }
+    fprintf(fp, "cell<%d:%s:%p=", cell->tag, str, cell);
+    switch (cell->tag) {
+        case CELL_NONE:
+            break;
+
+        case CELL_INT:
+            fprintf(fp, "%ld", cell->ival);
+            break;
+
+        case CELL_REAL:
+            fprintf(fp, "%lf", cell->rval);
+            break;
+
+        case CELL_STRING:
+            fprintf(fp, "\"%s\"", cell->sval);
+            break;
+
+        case CELL_SYMBOL:
+            fprintf(fp, "%s", cell->sval);
+            break;
+
+        case CELL_NATIVE:
+            fprintf(fp, "<%s>", cell->nval.label);
+            break;
+
+        case CELL_CONS: {
+            const Cons* cons = &cell->cons;
+            if (cons->car->tag == CELL_CONS) {
+                fputc('(', fp);
+                cell_print_all(cons->car, fp);
+                fputc(')', fp);
+            }
+            else {
+                cell_print_all(cons->car, fp);
+            }
+
+            if (cons->cdr == nil) {
+                // end of list, nothing else to do
+            }
+            else if (cons->cdr->tag == CELL_CONS) {
+                fputc(' ', fp);
+                cell_print_all(cons->cdr, fp);
+            }
+            else {
+                fputs(" . ", fp);
+                cell_print_all(cons->cdr, fp);
+            }
+            break;
+        }
+    }
+    fprintf(fp, ">");
+    if (eol) {
+        fputc('\n', fp);
+    }
+}
+
+static int get_length(const char* value, int len)
+{
+    if (!value || value[0] == '\0') {
+        len = 0;
+    }
+    if (len == 0 && value && value[0] != '\0') {
+        len = strlen(value);
+    }
+    return len;
 }
 
 static void cell_print_all(const Cell* cell, FILE* fp)
@@ -229,24 +333,5 @@ static void cell_print_all(const Cell* cell, FILE* fp)
             }
             break;
         }
-    }
-}
-
-void cell_print(const Cell* cell, FILE* fp, int eol)
-{
-    if (!cell) {
-        fputs("Cannot print a NULL cell", fp);
-    }
-    else if (cell->tag != CELL_CONS) {
-        cell_print_all(cell, fp);
-    }
-    else {
-        fputc('(', fp);
-        cell_print_all(cell, fp);
-        fputc(')', fp);
-    }
-
-    if (eol) {
-        fputc('\n', fp);
     }
 }

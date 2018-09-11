@@ -19,6 +19,7 @@
 #define CELL_CONS   5  // Cons cells
 #define CELL_PROC   6  // Procedures (interpreted code)
 #define CELL_NATIVE 7  // Native functions (compiled code)
+#define CELL_NEXT   8
 
 // Printable forms of these special values
 #define CELL_STR_NIL    "()"
@@ -97,5 +98,7 @@ Cell* cell_cdr(const Cell* cell);
 
 // Print contents of cell to given stream, optionally adding a \n
 void cell_print(const Cell* cell, FILE* fp, int eol);
+
+void cell_dump(const Cell* cell, FILE* fp, int eol);
 
 #endif
