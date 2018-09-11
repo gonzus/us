@@ -14,17 +14,18 @@ static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc);
 static Cell* cell_set_value(Cell* cell, Env* env, int create);
 static Cell* cell_if(Cell* cell, Env* env);
 static Cell* cell_lambda(Cell* cell, Env* env);
+static int gather_args(Cell* cell, int wanted, Cell* args[]);
 
 Cell* cell_eval(Cell* cell, Env* env)
 {
     if (cell->tag == CELL_SYMBOL) {
-        Cell* ret = nil;
         Symbol* symbol = env_lookup(env, cell->sval, 0);
         if (symbol) {
-            ret = symbol->value;
+            Cell* ret = symbol->value;
             printf("EVAL: looked up symbol [%s] in env %p => %p (tag %d)\n", cell->sval, env, ret, ret->tag);
+            return ret;
         }
-        return ret;
+        return nil;
     }
 
     if (cell->tag != CELL_CONS) {
@@ -32,46 +33,36 @@ Cell* cell_eval(Cell* cell, Env* env)
     }
 
     Cell* car = cell->cons.car;
+    Cell* cdr = cell->cons.cdr;
     printf("EVAL: evaluating a cons cell, car is %p (tag %d)\n", car, car->tag);
-    int done = 0;
-    Cell* ret = nil;
     if (car->tag == CELL_SYMBOL) {
         if (strcmp(car->sval, EVAL_QUOTE) == 0) {
             // a quote special form
-            done = 1;
-            if (cell->cons.cdr) {
-                ret = cell->cons.cdr->cons.car;
+            if (cdr) {
+                return cdr->cons.car;
             }
+            return nil;
         }
         else if (strcmp(car->sval, EVAL_DEFINE) == 0) {
             // a define special form
-            done = 1;
-            ret = cell_set_value(cell, env, 1);
+            return cell_set_value(cell, env, 1);
         }
         else if (strcmp(car->sval, EVAL_SET) == 0) {
             // a set! special form
-            done = 1;
-            ret = cell_set_value(cell, env, 0);
+            return cell_set_value(cell, env, 0);
         }
         else if (strcmp(car->sval, EVAL_IF) == 0) {
             // an if special form
-            done = 1;
-            ret = cell_if(cell, env);
+            return cell_if(cell, env);
         }
         else if (strcmp(car->sval, EVAL_LAMBDA) == 0 ) {
             // a lambda special form
-            done = 1;
-            ret = cell_lambda(cell, env);
+            return cell_lambda(cell, env);
         }
     }
 
-    if (done) {
-        return ret;
-    }
-
     // a function invocation
-    ret = cell_apply(cell, env);
-    return ret;
+    return cell_apply(cell, env);
 }
 
 // Apply a function (car) to all its arguments (cdr)
@@ -97,8 +88,8 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
     // all args in fresh slots for the params (see below)
     Env* proc_env = env_create(0, 0);
     Cell* ret = nil;
-    Cell* p;
-    Cell* a;
+    Cell* p = 0;
+    Cell* a = 0;
     printf("EVAL: proc on %p\n", cell);
     int pos = 0;
     for (p = proc->pval.params, a = cell->cons.cdr;
@@ -118,8 +109,10 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
         sym->value = arg;
         printf("Proc, setting arg #%d [%s] to %p (tag %d)\n", pos, par->sval, arg, arg->tag);
     }
-    // and now we set this env's parent
+    // and only *now* we set this env's parent
     proc_env->parent = proc->pval.env;
+
+    // and finally eval the proc body in this newly created env
     ret = cell_eval(proc->pval.body, proc_env);
 
     // TODO: check if below comment is still valid
@@ -152,7 +145,7 @@ static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc)
         last = cons;
         printf("Native, arg #%d is %p (tag %d), wrapped in %p\n", pos, arg, arg->tag, cons);
     }
-    printf("Native, calling with args %p (tag %d)\n", args, args->tag);
+    printf("Native, calling with args %p (tag %d)\n", args, args ? args->tag : CELL_NONE);
     ret = proc->nval.func(args);
     return ret;
 }
@@ -161,70 +154,64 @@ static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc)
 // optionally create it if it doesn't exist.
 static Cell* cell_set_value(Cell* cell, Env* env, int create)
 {
-    Cell* ret = nil;
-    do {
-        Cell* args[3];
-        int pos = 0;
-        for (Cell* c = cell; c && c != nil && pos < 3; c = c->cons.cdr) {
-            args[pos++] = c->cons.car;
-        }
-        if (pos != 3 || !args[1] || !args[2]) {
-            break;
-        }
+    Cell* args[3];
+    if (!gather_args(cell, 3, args)) {
+        return nil;
+    }
 
-        printf("EVAL: set value for [%s] (%d)\n", args[1]->sval, create);
-        Symbol* symbol = env_lookup(env, args[1]->sval, create);
-        if (!symbol) {
-            break;
-        }
+    printf("EVAL: set value for [%s] (%d)\n", args[1]->sval, create);
+    Symbol* symbol = env_lookup(env, args[1]->sval, create);
+    if (!symbol) {
+        printf("EVAL: symbol [%s] not found\n", args[1]->sval);
+        return nil;
+    }
 
-        ret = cell_eval(args[2], env);
-        symbol->value = ret;
-        printf("Setting value [%s] to %p (tag %d)\n", args[1]->sval, ret, ret->tag);
-    } while (0);
-
+    Cell* ret = cell_eval(args[2], env);
+    symbol->value = ret;
+    printf("Setting value [%s] to ", args[1]->sval);
+    cell_dump(ret, stdout, 1);
     return ret;
 }
 
 // Execute an if special form
 static Cell* cell_if(Cell* cell, Env* env)
 {
-    Cell* ret = nil;
-    do {
-        Cell* args[4];
-        int pos = 0;
-        for (Cell* c = cell; c && c != nil && pos < 4; c = c->cons.cdr) {
-            args[pos++] = c->cons.car;
-        }
-        if (pos != 4 || !args[1] || !args[2] || !args[3]) {
-            break;
-        }
+    Cell* args[4];
+    if (!gather_args(cell, 4, args)) {
+        return nil;
+    }
 
-        Cell* test = cell_eval(args[1], env);
-        printf("EVAL: if => %p %p %p\n", test, bool_t, bool_f);
-        ret = cell_eval(test == bool_f ? args[3] : args[2], env);
-    } while (0);
-
-    return ret;
+    Cell* test = cell_eval(args[1], env);
+    printf("EVAL: if => %p %p %p\n", test, bool_t, bool_f);
+    return cell_eval(test == bool_f ? args[3] : args[2], env);
 }
 
 // Execute a lambda special form
 static Cell* cell_lambda(Cell* cell, Env* env)
 {
-    Cell* ret = nil;
-    do {
-        Cell* args[3];
-        int pos = 0;
-        for (Cell* c = cell; c && c != nil && pos < 3; c = c->cons.cdr) {
-            args[pos++] = c->cons.car;
-        }
-        if (pos != 3 || !args[1] || !args[2]) {
-            break;
-        }
+    Cell* args[3];
+    if (!gather_args(cell, 3, args)) {
+        return nil;
+    }
 
-        printf("EVAL: lambda\n");
-        ret = cell_create_procedure(args[1], args[2], env);
-    } while (0);
+    printf("EVAL: lambda\n");
+    return cell_create_procedure(args[1], args[2], env);
+}
 
-    return ret;
+static int gather_args(Cell* cell, int wanted, Cell* args[])
+{
+    int pos = 0;
+    for (Cell* c = cell; c && c != nil && pos < wanted; c = c->cons.cdr) {
+        args[pos++] = c->cons.car;
+    }
+    if (pos != wanted) {
+        return 0;
+    }
+    for (int j = 1; j < wanted; ++j) {
+        if (!args[j]) {
+            return 0;
+        }
+    }
+
+    return 1;
 }
