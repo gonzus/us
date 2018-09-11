@@ -7,8 +7,6 @@
 
 #include "cell.h"
 
-#define ENV_DEFAULT_SIZE 1021
-
 // An entry in the hash table
 typedef struct Symbol {
     const char* name;

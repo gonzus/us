@@ -3,15 +3,19 @@
 #include <string.h>
 #include "env.h"
 
+#define ENV_DEFAULT_SIZE 1021
+
+static unsigned long hash(const char* str);
+
 void env_destroy(Env* env)
 {
     printf("ENV: destroying %p, %d buckets, parent %p\n", env, env->size, env->parent);
     for (int j = 0; j < env->size; ++j) {
-        Symbol* t = 0;
-        for (Symbol* s = env->table[j]; s != 0; ) {
-            t = s;
-            s = s->next;
-            free(t);
+        Symbol* tmp = 0;
+        for (Symbol* sym = env->table[j]; sym != 0; ) {
+            tmp = sym;
+            sym = sym->next;
+            free(tmp);
         }
     }
     free(env->table);
@@ -24,11 +28,44 @@ void env_destroy(Env* env)
 Env* env_create(int size, Env* parent)
 {
     Env* env = (Env*) malloc(sizeof(Env));
+    memset(env, 0, sizeof(Env));
     env->parent = parent;
     env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
     env->table = calloc(env->size, sizeof(Symbol));
     printf("ENV: created %p, %d buckets, parent %p\n", env, env->size, env->parent);
     return env;
+}
+
+Symbol* env_lookup(Env* env, const char* name, int create)
+{
+    // Search for name in current env
+    int h = hash(name) % env->size;
+    Symbol* sym = 0;
+    for (sym = env->table[h]; sym != 0; sym = sym->next) {
+        if (strcmp(name, sym->name) == 0) {
+            return sym;
+        }
+    }
+
+    // Name not found, search for it up in the chain, but NEVER create it there
+    if (env->parent) {
+        sym = env_lookup(env->parent, name, 0);
+        if (sym) {
+            return sym;
+        }
+    }
+
+    // Not found so far, maybe create it?
+    if (create) {
+        sym = (Symbol*) malloc(sizeof(Symbol));
+        sym->name = strdup(name);
+        sym->value = 0;
+        sym->next = env->table[h];
+        env->table[h] = sym;
+    }
+
+    // Return what we got, if anything
+    return sym;
 }
 
 // I've had nice results with djb2 by Dan Bernstein.
@@ -40,36 +77,4 @@ static unsigned long hash(const char* str)
         hash = ((hash << 5) + hash) + c; // hash * 33 + c
     }
     return hash;
-}
-
-Symbol* env_lookup(Env* env, const char* name, int create)
-{
-    // Search for name in current env
-    int h = hash(name) % env->size;
-    Symbol* s = 0;
-    for (s = env->table[h]; s != 0; s = s->next) {
-        if (strcmp(name, s->name) == 0) {
-            return s;
-        }
-    }
-
-    // Name not found, search for it up in the chain, but NEVER create it there
-    if (env->parent) {
-        s = env_lookup(env->parent, name, 0);
-        if (s) {
-            return s;
-        }
-    }
-
-    // Not found so far, maybe create it?
-    if (create) {
-        s = (Symbol*) malloc(sizeof(Symbol));
-        s->name = strdup(name);
-        s->value = 0;
-        s->next = env->table[h];
-        env->table[h] = s;
-    }
-
-    // Return what we got, if anything
-    return s;
 }
