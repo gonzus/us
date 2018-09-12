@@ -19,7 +19,7 @@
 #define CELL_CONS   5  // Cons cells
 #define CELL_PROC   6  // Procedures (interpreted code)
 #define CELL_NATIVE 7  // Native functions (compiled code)
-#define CELL_NEXT   8
+#define CELL_LAST   8
 
 // Printable forms of these special values
 #define CELL_STR_NIL    "()"
