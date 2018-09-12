@@ -8,6 +8,7 @@
 #define EVAL_SET    "set!"
 #define EVAL_LAMBDA "lambda"
 
+static Cell* cell_quote(Cell* cell, Env* env);
 static Cell* cell_apply(Cell* cell, Env* env);
 static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc);
 static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc);
@@ -39,25 +40,21 @@ Cell* cell_eval(Cell* cell, Env* env)
     if (car->tag == CELL_SYMBOL) {
         if (strcmp(car->sval, EVAL_QUOTE) == 0) {
             // a quote special form
-            Cell* cdr = cell->cons.cdr;
-            if (cdr) {
-                return cdr->cons.car;
-            }
-            return nil;
+            return cell_quote(cell, env);
         }
-        else if (strcmp(car->sval, EVAL_DEFINE) == 0) {
+        if (strcmp(car->sval, EVAL_DEFINE) == 0) {
             // a define special form
             return cell_set_value(cell, env, 1);
         }
-        else if (strcmp(car->sval, EVAL_SET) == 0) {
+        if (strcmp(car->sval, EVAL_SET) == 0) {
             // a set! special form
             return cell_set_value(cell, env, 0);
         }
-        else if (strcmp(car->sval, EVAL_IF) == 0) {
+        if (strcmp(car->sval, EVAL_IF) == 0) {
             // an if special form
             return cell_if(cell, env);
         }
-        else if (strcmp(car->sval, EVAL_LAMBDA) == 0 ) {
+        if (strcmp(car->sval, EVAL_LAMBDA) == 0 ) {
             // a lambda special form
             return cell_lambda(cell, env);
         }
@@ -65,6 +62,19 @@ Cell* cell_eval(Cell* cell, Env* env)
 
     // a function invocation
     return cell_apply(cell, env);
+}
+
+// Execute a quote special form
+static Cell* cell_quote(Cell* cell, Env* env)
+{
+    Cell* cdr = cell->cons.cdr;
+    Cell* ret = nil;
+    if (cdr) {
+        ret = cdr->cons.car;
+    }
+    printf("quote: ");
+    cell_dump(ret, stdout, 1);
+    return ret;
 }
 
 // Apply a function (car) to all its arguments (cdr)
@@ -119,7 +129,6 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
     // and finally eval the proc body in this newly created env
     ret = cell_eval(proc->pval.body, proc_env);
 
-    // TODO: check if below comment is still valid
     // We cannot destroy the proc_env variable, because it may have been
     // "captured" and will be returned to the caller; this  happens when
     // returning a lambda as the result of calling a procedure

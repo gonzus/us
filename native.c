@@ -196,7 +196,7 @@ Cell* func_eq(Cell* args)
             case CELL_NONE  : break;
             case CELL_INT   : ok = mem->ival == arg->ival; break;
             case CELL_REAL  : ok = mem->rval == arg->rval; break;
-            case CELL_STRING:
+            case CELL_STRING: // fall through
             case CELL_SYMBOL: ok = strcmp(mem->sval, arg->sval) == 0; break;
             case CELL_NATIVE: ok = mem->nval.func == arg->nval.func; break;
             default: ok = 0; break;
@@ -218,7 +218,7 @@ Cell* func_gt(Cell* args)
         switch (mem->tag) {
             case CELL_INT   : ok = mem->ival > arg->ival; break;
             case CELL_REAL  : ok = mem->rval > arg->rval; break;
-            case CELL_STRING:
+            case CELL_STRING: // fall through
             case CELL_SYMBOL: ok = strcmp(mem->sval, arg->sval) > 0; break;
             default: ok = 0; break;
         }
@@ -240,7 +240,7 @@ Cell* func_lt(Cell* args)
         switch (mem->tag) {
             case CELL_INT   : ok = mem->ival < arg->ival; break;
             case CELL_REAL  : ok = mem->rval < arg->rval; break;
-            case CELL_STRING:
+            case CELL_STRING: // fall through
             case CELL_SYMBOL: ok = strcmp(mem->sval, arg->sval) < 0; break;
             default: ok = 0; break;
         }
@@ -263,7 +263,8 @@ Cell* func_cons(Cell* args)
     if (pos == 2) {
         ret = cell_cons(mem[0], mem[1]);
     }
-    printf("CONS: %p\n", ret);
+    printf("CONS: ");
+    cell_dump(ret, stdout, 1);
     return ret;
 }
 
@@ -279,8 +280,8 @@ Cell* func_car(Cell* args)
     if (pos == 1) {
         ret = cell_car(mem[0]);
     }
-    printf("CAR: %p\n", ret);
-    // cell_print(ret, stdout, 1);
+    printf("CAR: ");
+    cell_dump(ret, stdout, 1);
     return ret;
 }
 
@@ -296,14 +297,15 @@ Cell* func_cdr(Cell* args)
     if (pos == 1) {
         ret = cell_cdr(mem[0]);
     }
-    printf("CDR: %p\n", ret);
-    // cell_print(ret, stdout, 1);
+    printf("CDR: ");
+    cell_dump(ret, stdout, 1);
     return ret;
 }
 
 
 Cell* func_begin(Cell* args)
 {
+    // we don't really do anything here, except remember the last value
     Cell* ret = nil;
     int pos = 0;
     CELL_LOOP("begin", pos, args, {
@@ -311,4 +313,3 @@ Cell* func_begin(Cell* args)
     });
     return ret;
 }
-

@@ -266,6 +266,9 @@ static void test_eval(void)
         { " (/ 24 4.0 5.0) " },
         { " (/ 24.0 4.0 3.0) " },
         { " (/ 24.0 4.0 5.0) " },
+        { " (car (quote (bofur bombur))) " },
+        { " (cdr (quote (bofur bombur))) " },
+        { " (cons (quote bifur) (quote (bofur bombur))) " },
 #endif
         { " (define make-account (lambda (balance) (lambda (amt) (begin (set! balance (+ balance amt)) balance)))) " },
         { " (define acct1 (make-account 100.0)) " },
