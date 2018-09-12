@@ -4,6 +4,7 @@ find . -type f |
 egrep -v '/(\.git)/' |
 egrep '\.(h|c)$' |
 egrep -v '(gonzo)\.(c)$' |
+egrep -v '(siod|tinyscheme.*)/' |
 while read f
 do
     echo -n $f
