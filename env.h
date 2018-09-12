@@ -27,6 +27,9 @@ void env_destroy(Env* env);
 // Create a new environment, given its size and an optional parent
 Env* env_create(int size, Env* parent);
 
+// Chain an environment with a parent
+void env_chain(Env* env, Env* parent);
+
 // Seach for a given name in the environment.
 // If not found, search up the chain of parents.
 // If not found anywhere and create is true, create new entry.

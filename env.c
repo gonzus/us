@@ -29,11 +29,21 @@ Env* env_create(int size, Env* parent)
 {
     Env* env = (Env*) malloc(sizeof(Env));
     memset(env, 0, sizeof(Env));
-    env->parent = parent;
     env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
     env->table = calloc(env->size, sizeof(Symbol));
     printf("ENV: created %p, %d buckets, parent %p\n", env, env->size, env->parent);
+    env_chain(env, parent);
     return env;
+}
+
+void env_chain(Env* env, Env* parent)
+{
+    if (!parent) {
+        return;
+    }
+
+    env->parent = parent;
+    printf("ENV: chained %p to parent %p\n", env, env->parent);
 }
 
 Symbol* env_lookup(Env* env, const char* name, int create)
