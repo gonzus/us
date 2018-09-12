@@ -6,6 +6,21 @@
 
 #define PARSER_DEFAULT_DEPTH 128
 
+#define CHECK_STATE(p, s, t, n, b, c, d) \
+    if ((p)->state == (s)) { \
+        if (t != TOKEN_NONE) token(p, t); \
+        (p)->state = n; \
+        if (d >= 0) (p)->beg = (p)->pos + d; \
+        if (b) break; \
+        if (c) continue; \
+    } \
+
+#define UNREACHABLE() \
+    do { \
+        fprintf(stderr, "%s %d unreachable code -- WTF?\n", __FILE__, __LINE__); \
+        abort(); \
+    } while (0)
+
 // Possible parser->states for our parser; it starts in STATE_NORMAL
 #define STATE_NORMAL 0
 #define STATE_INT    1
@@ -59,153 +74,95 @@ Cell* parser_result(Parser* parser)
 
 void parser_parse(Parser* parser, const char* str)
 {
-    parser_reset(parser, str);
-    for (; ; ++parser->pos) {
+    // Our parser is written this way so that it is ready to be translated to a
+    // much more efficient table lookup implementation.
+    for (parser_reset(parser, str); 1; ++parser->pos) {
         if (str[parser->pos] == '\0') {
-            if (parser->state == STATE_INT) {
-                token(parser, TOKEN_INT);
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_REAL) {
-                token(parser, TOKEN_REAL);
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_STRING) {
-                // ERROR missing closing "
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_SYMBOL) {
-                token(parser, TOKEN_SYMBOL);
-                parser->state = STATE_NORMAL;
-            }
-            break; // QUIT LOOP
+            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_NORMAL, 1, 0, -1);
+            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_NORMAL, 1, 0, -1);
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_NORMAL, 1, 0, -1);
+            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_NORMAL, 1, 0, -1); // ERROR missing closing "
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_NORMAL, 1, 0, -1);
+            UNREACHABLE();
         }
-        else if (str[parser->pos] == '"') {
-            if (parser->state == STATE_NORMAL) {
-                parser->state = STATE_STRING;
-            }
-            else if (parser->state == STATE_INT) {
-                token(parser, TOKEN_INT);
-                parser->state = STATE_STRING;
-            }
-            else if (parser->state == STATE_REAL) {
-                token(parser, TOKEN_REAL);
-                parser->state = STATE_STRING;
-            }
-            else if (parser->state == STATE_STRING) {
-                token(parser, TOKEN_STRING);
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_SYMBOL) {
-                token(parser, TOKEN_SYMBOL);
-                parser->state = STATE_STRING;
-            }
-            parser->beg = parser->pos + 1;
+        if (str[parser->pos] == '"') {
+            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_STRING, 0, 1, +1);
+            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_STRING, 0, 1, +1);
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_STRING, 0, 1, +1);
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_STRING, 0, 1, +1);
+            CHECK_STATE(parser, STATE_STRING, TOKEN_STRING, STATE_NORMAL, 0, 1, +1);
+            UNREACHABLE();
         }
-        else if (str[parser->pos] == '(') {
-            if (parser->state == STATE_NORMAL) {
-                token(parser, TOKEN_LPAREN);
-            }
-            else if (parser->state == STATE_INT) {
-                // 34( is two tokens
-                token(parser, TOKEN_INT);
-                token(parser, TOKEN_LPAREN);
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_REAL) {
-                // 34.7( is two tokens
-                token(parser, TOKEN_REAL);
-                token(parser, TOKEN_LPAREN);
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_SYMBOL) {
-                // abc( is two tokens
-                token(parser, TOKEN_SYMBOL);
-                token(parser, TOKEN_LPAREN);
-                parser->state = STATE_NORMAL;
-            }
+        if (str[parser->pos] == '(') {
+            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(parser, STATE_NORMAL, TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
+
+            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_INT   , 0, 0, -1); // 34( is two tokens
+            CHECK_STATE(parser, STATE_INT   , TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
+
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_REAL  , 0, 0, -1); // 34.7( is two tokens
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
+
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_SYMBOL, 0, 0, -1); // abc( is two tokens
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
+            UNREACHABLE();
         }
-        else if (str[parser->pos] == ')') {
-            if (parser->state == STATE_NORMAL) {
-                token(parser, TOKEN_RPAREN);
-            }
-            else if (parser->state == STATE_INT) {
-                // 34) is two tokens
-                token(parser, TOKEN_INT);
-                token(parser, TOKEN_RPAREN);
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_REAL) {
-                // 34.7) is two tokens
-                token(parser, TOKEN_REAL);
-                token(parser, TOKEN_RPAREN);
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_SYMBOL) {
-                // abc) is two tokens
-                token(parser, TOKEN_SYMBOL);
-                token(parser, TOKEN_RPAREN);
-                parser->state = STATE_NORMAL;
-            }
+        if (str[parser->pos] == ')') {
+            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(parser, STATE_NORMAL, TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
+
+            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_INT   , 0, 0, -1); // 34) is two tokens
+            CHECK_STATE(parser, STATE_INT   , TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
+
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_REAL  , 0, 0, -1); // 34.7) is two tokens
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
+
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_SYMBOL, 0, 0, -1); // abc) is two tokens
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
+            UNREACHABLE();
         }
-        else if (str[parser->pos] == '+' ||
-                 str[parser->pos] == '-') {
-            if (parser->state == STATE_NORMAL) {
-                parser->beg = parser->pos;
-                parser->state = STATE_INT;
-            }
-            else if (parser->state == STATE_INT ||
-                     parser->state == STATE_REAL) {
-                // 1+ 1- 1.5+ 1.5- are valid symbols
-                parser->state = STATE_SYMBOL;
-            }
+        if (str[parser->pos] == '+' ||
+            str[parser->pos] == '-') {
+            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_INT   , 0, 1, +0);
+            CHECK_STATE(parser, STATE_INT   , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            UNREACHABLE();
         }
-        else if (str[parser->pos] == '.') {
-            if (parser->state == STATE_NORMAL) {
-                parser->beg = parser->pos;
-                parser->state = STATE_REAL;
-            }
-            else if (parser->state == STATE_INT) {
-                parser->state = STATE_REAL;
-            }
-            else if (parser->state == STATE_REAL) {
-                // 123.4. is a valid symbol
-                parser->state = STATE_SYMBOL;
-            }
+        if (str[parser->pos] == '.') {
+            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_REAL  , 0, 1, +0);
+            CHECK_STATE(parser, STATE_INT   , TOKEN_NONE  , STATE_REAL  , 0, 1, -1);
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1); // 123.4. is a valid symbol
+            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            UNREACHABLE();
         }
-        else if (isspace(str[parser->pos])) {
-            if (parser->state == STATE_NORMAL) {
-            }
-            else if (parser->state == STATE_INT) {
-                token(parser, TOKEN_INT);
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_REAL) {
-                token(parser, TOKEN_REAL);
-                parser->state = STATE_NORMAL;
-            }
-            else if (parser->state == STATE_SYMBOL) {
-                token(parser, TOKEN_SYMBOL);
-                parser->state = STATE_NORMAL;
-            }
+        if (isspace(str[parser->pos])) {
+            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            UNREACHABLE();
         }
-        else if (isdigit(str[parser->pos])) {
-            if (parser->state == STATE_NORMAL) {
-                parser->beg = parser->pos;
-                parser->state = STATE_INT;
-            }
+        if (isdigit(str[parser->pos])) {
+            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_INT   , 0, 1, +0);
+            CHECK_STATE(parser, STATE_INT   , TOKEN_NONE  , STATE_INT   , 0, 1, -1);
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_NONE  , STATE_REAL  , 0, 1, -1);
+            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            UNREACHABLE();
         }
-        else {
-            if (parser->state == STATE_NORMAL) {
-                parser->beg = parser->pos;
-                parser->state = STATE_SYMBOL;
-            }
-            else if (parser->state == STATE_INT ||
-                     parser->state == STATE_REAL) {
-                // 1/ 1.4/ are valid symbols
-                parser->state = STATE_SYMBOL;
-            }
+        if (1) {
+            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, +0);
+            CHECK_STATE(parser, STATE_INT   , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1); // 1/   is a valid symbol
+            CHECK_STATE(parser, STATE_REAL  , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1); // 1.4/ is a valid symbol
+            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            UNREACHABLE();
         }
+        UNREACHABLE();
     }
 }
 
