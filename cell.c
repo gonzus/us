@@ -268,6 +268,10 @@ static void cell_print_all(const Cell* cell, FILE* fp)
             fprintf(fp, "%s", cell->sval);
             break;
 
+        case CELL_PROC:
+            fprintf(fp, "<%s>", "*CODE*");
+            break;
+
         case CELL_NATIVE:
             fprintf(fp, "<%s>", cell->nval.label);
             break;

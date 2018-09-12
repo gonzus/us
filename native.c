@@ -8,15 +8,8 @@
         printf("Entering native %s\n", name); \
         for (Cell* c = args; c && c != nil; c = c->cons.cdr, ++pos) { \
             Cell* arg = c->cons.car; \
-            printf("Arg #%d tag %d", pos, arg->tag); \
-            switch (arg->tag) { \
-                case CELL_INT   : printf(" = %ld", arg->ival); break; \
-                case CELL_REAL  : printf(" = %lf", arg->rval); break; \
-                case CELL_STRING: \
-                case CELL_SYMBOL: printf(" = \"%s\"", arg->sval); break; \
-                case CELL_NATIVE: printf(" = <%s>", arg->nval.label); break; \
-            } \
-            printf("\n"); \
+            printf("Arg #%d ", pos); \
+            cell_dump(arg, stdout, 1); \
             do body while (0); \
         } \
         printf("Leaving native %s\n", name); \

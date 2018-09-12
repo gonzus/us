@@ -22,7 +22,8 @@ Cell* cell_eval(Cell* cell, Env* env)
         Symbol* symbol = env_lookup(env, cell->sval, 0);
         if (symbol) {
             Cell* ret = symbol->value;
-            printf("EVAL: looked up symbol [%s] in env %p => %p (tag %d)\n", cell->sval, env, ret, ret->tag);
+            printf("EVAL: looked up symbol [%s] in env %p => ", cell->sval, env);
+            cell_dump(ret, stdout, 1);
             return ret;
         }
         return nil;
@@ -33,11 +34,12 @@ Cell* cell_eval(Cell* cell, Env* env)
     }
 
     Cell* car = cell->cons.car;
-    Cell* cdr = cell->cons.cdr;
-    printf("EVAL: evaluating a cons cell, car is %p (tag %d)\n", car, car->tag);
+    printf("EVAL: evaluating a cons cell, car is ");
+    cell_dump(car, stdout, 1);
     if (car->tag == CELL_SYMBOL) {
         if (strcmp(car->sval, EVAL_QUOTE) == 0) {
             // a quote special form
+            Cell* cdr = cell->cons.cdr;
             if (cdr) {
                 return cdr->cons.car;
             }
@@ -90,7 +92,8 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
     Cell* ret = nil;
     Cell* p = 0;
     Cell* a = 0;
-    printf("EVAL: proc on %p\n", cell);
+    printf("EVAL: proc on ");
+    cell_dump(cell, stdout, 1);
     int pos = 0;
     for (p = proc->pval.params, a = cell->cons.cdr;
          p && p != nil && a && a != nil;
@@ -107,7 +110,8 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
             return nil;
         }
         sym->value = arg;
-        printf("Proc, setting arg #%d [%s] to %p (tag %d)\n", pos, par->sval, arg, arg->tag);
+        printf("Proc, setting arg #%d [%s] to ", pos, par->sval);
+        cell_dump(arg, stdout, 1);
     }
     // and only *now* we set this env's parent
     proc_env->parent = proc->pval.env;
@@ -127,7 +131,8 @@ static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc)
     Cell* ret = nil;
     Cell* args = 0;
     Cell* last = 0;
-    printf("EVAL: native [%s] on %p\n", proc->nval.label, cell);
+    printf("EVAL: native [%s] on ", proc->nval.label);
+    cell_dump(cell, stdout, 1);
     int pos = 0;
     for (Cell* c = cell->cons.cdr; c && c != nil; c = c->cons.cdr, ++pos) {
         Cell* arg = cell_eval(c->cons.car, env);
@@ -143,9 +148,11 @@ static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc)
             last->cons.cdr = cons;
         }
         last = cons;
-        printf("Native, arg #%d is %p (tag %d), wrapped in %p\n", pos, arg, arg->tag, cons);
+        printf("Native, arg #%d is ", pos);
+        cell_dump(arg, stdout, 1);
     }
-    printf("Native, calling with args %p (tag %d)\n", args, args ? args->tag : CELL_NONE);
+    printf("Native, calling with args ");
+    cell_dump(args, stdout, 1);
     ret = proc->nval.func(args);
     return ret;
 }
@@ -159,7 +166,8 @@ static Cell* cell_set_value(Cell* cell, Env* env, int create)
         return nil;
     }
 
-    printf("EVAL: set value for [%s] (%d)\n", args[1]->sval, create);
+    printf("EVAL: set value for [%s] (create: %d) to ", args[1]->sval, create);
+    cell_dump(args[2], stdout, 1);
     Symbol* symbol = env_lookup(env, args[1]->sval, create);
     if (!symbol) {
         printf("EVAL: symbol [%s] not found\n", args[1]->sval);
@@ -181,9 +189,20 @@ static Cell* cell_if(Cell* cell, Env* env)
         return nil;
     }
 
-    Cell* test = cell_eval(args[1], env);
-    printf("EVAL: if => %p %p %p\n", test, bool_t, bool_f);
-    return cell_eval(test == bool_f ? args[3] : args[2], env);
+    printf("EVAL: if Q ");
+    cell_dump(args[1], stdout, 1);
+    printf("EVAL: if ? ");
+    cell_dump(args[2], stdout, 1);
+    printf("EVAL: if : ");
+    cell_dump(args[3], stdout, 1);
+
+    Cell* tst = cell_eval(args[1], env);
+    Cell* ans = cell_eval(tst == bool_t ? args[2] : args[3], env);
+    printf("EVAL: if ");
+    cell_dump(tst, stdout, 0);
+    printf(" => ");
+    cell_dump(ans, stdout, 1);
+    return ans;
 }
 
 // Execute a lambda special form
@@ -194,7 +213,10 @@ static Cell* cell_lambda(Cell* cell, Env* env)
         return nil;
     }
 
-    printf("EVAL: lambda\n");
+    printf("EVAL: lambda args ");
+    cell_dump(args[1], stdout, 1);
+    printf("EVAL: lambda body ");
+    cell_dump(args[2], stdout, 1);
     return cell_create_procedure(args[1], args[2], env);
 }
 
