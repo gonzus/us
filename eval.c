@@ -2,12 +2,14 @@
 #include <string.h>
 #include "eval.h"
 
+// special forms we need to recognize
 #define EVAL_QUOTE  "quote"
 #define EVAL_IF     "if"
 #define EVAL_DEFINE "define"
 #define EVAL_SET    "set!"
 #define EVAL_LAMBDA "lambda"
 
+static Cell* cell_symbol(Cell* cell, Env* env);
 static Cell* cell_quote(Cell* cell, Env* env);
 static Cell* cell_apply(Cell* cell, Env* env);
 static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc);
@@ -20,23 +22,21 @@ static int gather_args(Cell* cell, int wanted, Cell* args[]);
 Cell* cell_eval(Cell* cell, Env* env)
 {
     if (cell->tag == CELL_SYMBOL) {
-        Symbol* symbol = env_lookup(env, cell->sval, 0);
-        if (symbol) {
-            Cell* ret = symbol->value;
-            printf("EVAL: looked up symbol [%s] in env %p => ", cell->sval, env);
-            cell_dump(ret, stdout, 1);
-            return ret;
-        }
-        return nil;
+        // a symbol => get it from the environment
+        return cell_symbol(cell, env);
     }
 
     if (cell->tag != CELL_CONS) {
+        // anything not a cons => just return it
         return cell;
     }
 
+    // we know for sure we have a cons cell
     Cell* car = cell->cons.car;
     printf("EVAL: evaluating a cons cell, car is ");
     cell_dump(car, stdout, 1);
+
+    // is it a special form?
     if (car->tag == CELL_SYMBOL) {
         if (strcmp(car->sval, EVAL_QUOTE) == 0) {
             // a quote special form
@@ -60,21 +60,34 @@ Cell* cell_eval(Cell* cell, Env* env)
         }
     }
 
-    // a function invocation
+    // treat the cell as a function invocation
     return cell_apply(cell, env);
+}
+
+// Eval a symbol cell
+static Cell* cell_symbol(Cell* cell, Env* env)
+{
+    Cell* ret = nil;
+    Symbol* symbol = env_lookup(env, cell->sval, 0);
+    if (symbol) {
+        ret = symbol->value;
+    }
+    printf("EVAL: looked up symbol [%s] in env %p => ", cell->sval, env);
+    cell_dump(ret, stdout, 1);
+    return ret;
 }
 
 // Execute a quote special form
 static Cell* cell_quote(Cell* cell, Env* env)
 {
-    Cell* cdr = cell->cons.cdr;
-    Cell* ret = nil;
-    if (cdr) {
-        ret = cdr->cons.car;
+    Cell* args[2];
+    if (!gather_args(cell, 2, args)) {
+        return nil;
     }
-    printf("quote: ");
-    cell_dump(ret, stdout, 1);
-    return ret;
+
+    printf("EVAL: quote ");
+    cell_dump(args[1], stdout, 1);
+    return args[1];
 }
 
 // Apply a function (car) to all its arguments (cdr)
