@@ -109,12 +109,11 @@ static Cell* cell_apply(Cell* cell, Env* env)
 
 static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
 {
-    // We create a new env where we can bind all args in fresh slots for the
-    // params (see *COMMENT* below)
+    // We create a new env where we can bind all evaled args in fresh slots for
+    // the params (see *COMMENT* below)
     Env* proc_env = env_create(0);
-    Cell* ret = nil;
-    Cell* p = 0;
-    Cell* a = 0;
+    Cell* p = 0; // pointer to current parameter
+    Cell* a = 0; // pointer to current argument
     printf("EVAL: proc on ");
     cell_dump(cell, stdout, 1);
     int pos = 0;
@@ -122,11 +121,17 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
          p && p != nil && a && a != nil;
          p = p->cons.cdr, a = a->cons.cdr, ++pos) {
         Cell* par = p->cons.car;
+        if (!par) {
+            printf("Could not get parameter #%d\n", pos);
+            return nil;
+        }
+        // we eval each arg in the caller's environment
         Cell* arg = cell_eval(a->cons.car, env);
         if (!arg) {
             printf("Could not evaluate arg #%d [%s]\n", pos, par->sval);
             return nil;
         }
+        // now we create a symbol with the correct name=value association
         Symbol* sym = env_lookup(proc_env, par->sval, 1);
         if (!sym) {
             printf("Could not create binding for arg #%d [%s]\n", pos, par->sval);
@@ -139,8 +144,8 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
     // *COMMENT* only *now* we set this env's parent
     env_chain(proc_env, proc->pval.env);
 
-    // and finally eval the proc body in this newly created env
-    ret = cell_eval(proc->pval.body, proc_env);
+    // finally eval the proc body in this newly created env
+    Cell* ret = cell_eval(proc->pval.body, proc_env);
 
     // We cannot destroy the proc_env variable, because it may have been
     // "captured" and will be returned to the caller; this  happens when
@@ -150,32 +155,40 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
 
 static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc)
 {
-    Cell* ret = nil;
+    // We create a new list with all evaled args
+    Cell* a = 0; // pointer to current argument
     Cell* args = 0;
     Cell* last = 0;
     printf("EVAL: native [%s] on ", proc->nval.label);
     cell_dump(cell, stdout, 1);
     int pos = 0;
-    for (Cell* c = cell->cons.cdr; c && c != nil; c = c->cons.cdr, ++pos) {
-        Cell* arg = cell_eval(c->cons.car, env);
+    for (a = cell->cons.cdr;
+         a && a != nil;
+         a = a->cons.cdr, ++pos) {
+        // we eval each arg in the caller's environment
+        Cell* arg = cell_eval(a->cons.car, env);
         if (!arg) {
-            printf("Could not evaluate arg #%d\n", pos);
-            return ret;
+            printf("Native, could not evaluate arg #%d for [%s]\n", pos, proc->nval.label);
+            return nil;
         }
         Cell* cons = cell_cons(arg, nil);
         if (!args) {
+            // first arg => remember it
             args = cons;
         }
         if (last) {
+            // already have a last element => chain from it
             last->cons.cdr = cons;
         }
+        // remember last element
         last = cons;
-        printf("Native, arg #%d is ", pos);
+        printf("Native, arg #%d for [%s] is ", pos, proc->nval.label);
         cell_dump(arg, stdout, 1);
     }
-    printf("Native, calling with args ");
-    cell_dump(args, stdout, 1);
-    ret = proc->nval.func(args);
+
+    // finally eval the proc function with its args
+    Cell* ret = proc->nval.func(args);
+
     return ret;
 }
 
