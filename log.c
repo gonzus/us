@@ -1,6 +1,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
 #include "log.h"
 
 static const char* log_file = 0;
@@ -64,11 +66,24 @@ static int log_printf(int level, const char* fmt, va_list ap)
         "ERR",
         "FTL",
     };
-    const char* str = "???";
+    const char* str_level = "???";
     if (level >= 0 && level < LOG_LEVEL_LAST) {
-        str = Level[level];
+        str_level = Level[level];
     }
-    fprintf(stderr, "[%s] - %s:%d - ", str, log_file, log_line);
+
+    time_t tloc;
+    struct tm tdat;
+    time(&tloc);
+    localtime_r(&tloc, &tdat);
+
+    pid_t pid = getpid();
+
+    fprintf(stderr, "[%s] %04d-%02d-%02d %02d:%02d:%02d %d - %s:%d - ",
+            str_level,
+            tdat.tm_year + 1900, tdat.tm_mon + 1, tdat.tm_mday,
+            tdat.tm_hour, tdat.tm_min, tdat.tm_sec,
+            (int) pid,
+            log_file, log_line);
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
     return 0;
