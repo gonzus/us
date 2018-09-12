@@ -1,6 +1,7 @@
 #ifndef CELL_H_
 #define CELL_H_
 
+// need this for FILE*
 #include <stdio.h>
 
 // A Cell stores any possible value (integer, conses, others)

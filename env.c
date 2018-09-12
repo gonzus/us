@@ -2,7 +2,7 @@
 #include <string.h>
 #include "env.h"
 
-#define LOG_LEVEL LOG_LEVEL_DEBUG
+// #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
 
 #define ENV_DEFAULT_SIZE 1021

@@ -1,6 +1,7 @@
-#include <stdio.h>
+// #include <stdio.h>
 #include <string.h>
 #include "cell.h"
+#include "env.h"
 #include "native.h"
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG

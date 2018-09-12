@@ -12,6 +12,7 @@ C_LIB_SRC = \
 	parser.c \
 	eval.c \
 	native.c \
+	us.c \
 
 C_EXE_SRC = \
 	gonzo.c \

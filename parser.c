@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "cell.h"
 #include "parser.h"
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG

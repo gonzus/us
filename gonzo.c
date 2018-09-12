@@ -1,13 +1,9 @@
 #include <stdio.h>
 #include "cell.h"
-#include "env.h"
 #include "parser.h"
-#include "eval.h"
-#include "native.h"
+#include "env.h"
+#include "us.h"
 
-#define USE_REPL 0
-
-#if 1
 static void test_nil(void)
 {
     printf("%s => ", "()");
@@ -135,41 +131,12 @@ static void test_parse(void)
     }
     parser_destroy(parser);
 }
-#endif
 
-static Env* make_global_env(void)
-{
-    struct Data {
-        const char* name;
-        NativeFunc* func;
-    } data[] = {
-        { "+"       , func_add   },
-        { "-"       , func_sub   },
-        { "*"       , func_mul   },
-        { "/"       , func_div   },
-        { "="       , func_eq    },
-        { ">"       , func_gt    },
-        { "<"       , func_lt    },
-        { "cons"    , func_cons  },
-        { "car"     , func_car   },
-        { "cdr"     , func_cdr   },
-        { "begin"   , func_begin },
-    };
-    Env* env = env_create(0);
-    for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
-        Symbol* sym = env_lookup(env, data[j].name, 1);
-        sym->value = cell_create_native(data[j].name, data[j].func);
-    }
-    return env;
-}
-
-#if 1
 static void test_eval(void)
 {
     static struct {
         const char* code;
     } data[] = {
-#if 1
         { " 11 " },
         { " () " },
         { " -3.1415 " },
@@ -278,7 +245,6 @@ static void test_eval(void)
         { " (car (quote (bofur bombur))) " },
         { " (cdr (quote (bofur bombur))) " },
         { " (cons (quote bifur) (quote (bofur bombur))) " },
-#endif
         { " (define make-account (lambda (balance) (lambda (amt) (begin (set! balance (+ balance amt)) balance)))) " },
         { " (define acct1 (make-account 100.0)) " },
         { " (acct1 -20.0) " },
@@ -288,78 +254,41 @@ static void test_eval(void)
         { " (acct2 -20.0) " },
     };
 
-    Parser* parser = parser_create(0);
-    Env* env = make_global_env();
+    US* us = us_create();
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;
-        printf("===== Parsing [%s]:\n", code);
-        fflush(stdout);
-        parser_parse(parser, code);
-        Cell* c = parser_result(parser);
-        if (!c) {
-            continue;
-        }
-        cell_print(c, stdout, 1);
-
-        const Cell* r = cell_eval(c, env);
-        printf("[%p] => ", r);
-        cell_print(r, stdout, 1);
+        us_eval_str(us, code);
     }
-    env_destroy(env);
-    parser_destroy(parser);
+    us_destroy(us);
 }
-#endif
 
-#if defined(USE_REPL) && USE_REPL > 0
-static void repl(void)
+static void test_repl(void)
 {
-    Parser* parser = parser_create(0);
-    Env* env = make_global_env();
-    while (1) {
-        char buf[1024];
-        fputs("> ", stdout);
-        //buf[0] = '\0';
-        if (!fgets(buf, 1024, stdin)) {
-            break;
-        }
-        printf("--> WILL PARSE [%s] <--\n", buf);
-        fflush(stdout);
-        parser_parse(parser, buf);
-        Cell* c = parser_result(parser);
-        if (!c) {
-            continue;
-        }
-        printf("==> EVAL: ");
-        cell_print(c, stdout, 0);
-
-        const Cell* r = cell_eval(c, env);
-        printf("==> [%p] ", r);
-        cell_print(r, stdout, 1);
-    }
-    env_destroy(env);
-    parser_destroy(parser);
+    US* us = us_create();
+    us_repl(us);
+    us_destroy(us);
 }
-#endif
 
 int main(int argc, char* argv[])
 {
-#if 1
-    test_nil();
-    test_string();
-    test_number();
-    test_simple_list();
-    test_nested_list();
-    test_dotted();
-    test_symbol();
-    test_parse();
-    test_eval();
-#endif
+    int run_tests = argc <= 1;
+    int run_repl  = argc >  1;
 
-#if defined(USE_REPL) && USE_REPL > 0
-    printf("Special values: nil = %p, #t = %p, #f = %p\n", nil, bool_t, bool_f);
-    fflush(stdout);
-    repl();
-#endif
+    if (run_tests) {
+        test_nil();
+        test_string();
+        test_number();
+        test_simple_list();
+        test_nested_list();
+        test_dotted();
+        test_symbol();
+        test_parse();
+        test_eval();
+    }
+
+    if (run_repl) {
+        test_repl();
+    }
 
     return 0;
 }

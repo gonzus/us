@@ -1,8 +1,9 @@
-#include <stdio.h>
 #include <string.h>
+#include "cell.h"
+#include "env.h"
 #include "eval.h"
 
-#define LOG_LEVEL LOG_LEVEL_DEBUG
+// #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
 #if LOG_LEVEL <= LOG_LEVEL_DEBUG
 static char dumper[10*1024];
@@ -16,7 +17,7 @@ static char dumper[10*1024];
 #define EVAL_LAMBDA "lambda"
 
 static Cell* cell_symbol(Cell* cell, Env* env);
-static Cell* cell_quote(Cell* cell, Env* env);
+static Cell* cell_quote(Cell* cell);  // no need for env
 static Cell* cell_apply(Cell* cell, Env* env);
 static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc);
 static Cell* cell_apply_native(Cell* cell, Env* env, Cell* proc);
@@ -33,7 +34,7 @@ Cell* cell_eval(Cell* cell, Env* env)
     }
 
     if (cell->tag != CELL_CONS) {
-        // anything not a cons => just return it
+        // anything not a cons => self-evaluating, just return it
         return cell;
     }
 
@@ -46,7 +47,7 @@ Cell* cell_eval(Cell* cell, Env* env)
     if (car->tag == CELL_SYMBOL) {
         if (strcmp(car->sval, EVAL_QUOTE) == 0) {
             // a quote special form
-            return cell_quote(cell, env);
+            return cell_quote(cell);
         }
         if (strcmp(car->sval, EVAL_DEFINE) == 0) {
             // a define special form
@@ -83,7 +84,7 @@ static Cell* cell_symbol(Cell* cell, Env* env)
 }
 
 // Execute a quote special form
-static Cell* cell_quote(Cell* cell, Env* env)
+static Cell* cell_quote(Cell* cell)
 {
     Cell* args[2];
     if (!gather_args(cell, 2, args)) {

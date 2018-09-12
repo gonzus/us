@@ -3,11 +3,9 @@
 
 // Hand-coded parser for a lisp-like language
 
-#include "cell.h"
-
 typedef struct Expression {
-    Cell* frst;
-    Cell* last;
+    struct Cell* frst;
+    struct Cell* last;
 } Expression;
 
 typedef struct Parser {
@@ -26,6 +24,6 @@ void parser_destroy(Parser* parser);
 
 void parser_parse(Parser* parser, const char* str);
 void parser_reset(Parser* parser, const char* str);
-Cell* parser_result(Parser* parser);
+struct Cell* parser_result(Parser* parser);
 
 #endif
