@@ -96,9 +96,9 @@ static Cell* cell_apply(Cell* cell, Env* env)
 
 static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
 {
-    // We create a new env with no parent, so that we will bind
-    // all args in fresh slots for the params (see below)
-    Env* proc_env = env_create(0, 0);
+    // We create a new env where we can bind all args in fresh slots for the
+    // params (see *COMMENT* below)
+    Env* proc_env = env_create(0);
     Cell* ret = nil;
     Cell* p = 0;
     Cell* a = 0;
@@ -123,7 +123,7 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
         printf("Proc, setting arg #%d [%s] to ", pos, par->sval);
         cell_dump(arg, stdout, 1);
     }
-    // and only *now* we set this env's parent
+    // *COMMENT* only *now* we set this env's parent
     env_chain(proc_env, proc->pval.env);
 
     // and finally eval the proc body in this newly created env

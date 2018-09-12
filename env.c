@@ -25,14 +25,13 @@ void env_destroy(Env* env)
     free(env);
 }
 
-Env* env_create(int size, Env* parent)
+Env* env_create(int size)
 {
     Env* env = (Env*) malloc(sizeof(Env));
     memset(env, 0, sizeof(Env));
     env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
     env->table = calloc(env->size, sizeof(Symbol));
-    printf("ENV: created %p, %d buckets, parent %p\n", env, env->size, env->parent);
-    env_chain(env, parent);
+    printf("ENV: created %p, %d buckets\n", env, env->size);
     return env;
 }
 

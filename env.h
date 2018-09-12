@@ -24,8 +24,8 @@ typedef struct Env {
 // Destroy an environment
 void env_destroy(Env* env);
 
-// Create a new environment, given its size and an optional parent
-Env* env_create(int size, Env* parent);
+// Create a new environment, given its size
+Env* env_create(int size);
 
 // Chain an environment with a parent
 void env_chain(Env* env, Env* parent);

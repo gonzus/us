@@ -72,24 +72,25 @@ static void test_dotted(void)
 static void test_symbol(void)
 {
     const char* name = "set-gonzo!";
-    Env* env0 = env_create(0, 0);
-    printf("Created env0 %p\n", env0);
+    Env* parent = env_create(0);
+    printf("Created parent %p\n", parent);
     {
-        Symbol* s = env_lookup(env0, name, 1);
+        Symbol* s = env_lookup(parent, name, 1);
         Cell* c = cell_create_int(11);
         s->value = c;
-        printf("Inserted symbol [%s] in env0 => %p\n", name, s);
+        printf("Inserted symbol [%s] in parent => %p\n", name, s);
     }
     {
-        Symbol* s = env_lookup(env0, name, 0);
-        printf("Looked up symbol [%s] in env0 => %p\n", name, s);
+        Symbol* s = env_lookup(parent, name, 0);
+        printf("Looked up symbol [%s] in parent => %p\n", name, s);
     }
 
-    Env* env1 = env_create(0, env0);
-    printf("Created env1 %p\n", env1);
+    Env* child = env_create(0);
+    env_chain(child, parent);
+    printf("Created child %p and chained to parent %p\n", child, parent);
     {
-        Symbol* s = env_lookup(env1, name, 0);
-        printf("Looked up symbol [%s] in env1 => %p\n", name, s);
+        Symbol* s = env_lookup(child, name, 0);
+        printf("Looked up symbol [%s] in child => %p\n", name, s);
     }
 }
 
@@ -146,7 +147,7 @@ static Env* make_global_env(void)
         { "cdr"     , func_cdr   },
         { "begin"   , func_begin },
     };
-    Env* env = env_create(0, 0);
+    Env* env = env_create(0);
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         Symbol* sym = env_lookup(env, data[j].name, 1);
         sym->value = cell_create_native(data[j].name, data[j].func);
