@@ -3,24 +3,40 @@ first: all
 CFLAGS += -g
 CFLAGS += -I.
 CFLAGS += -Wall
-# CFLAGS += -Werror
+CFLAGS += -Werror
 
-cell.o: cell.c
-env.o: env.c
-parser.o: parser.c
-eval.o: eval.c
-native.o: native.c
+C_LIB_SRC = \
+	log.c \
+	cell.c \
+	env.c \
+	parser.c \
+	eval.c \
+	native.c \
 
-libus.a: cell.o env.o parser.o eval.o native.o
+C_EXE_SRC = \
+	gonzo.c \
+
+LIBRARY = us
+
+C_LIB_HDR = $(C_LIB_SRC:.c=.h)
+C_LIB_OBJ = $(C_LIB_SRC:.c=.o)
+C_EXE_OBJ = $(C_EXE_SRC:.c=.o)
+LIBNAME = lib$(LIBRARY).a
+EXENAME = $(C_EXE_SRC:.c=)
+
+%.o: %.c $(C_LIB_HDR)
+	$(CC) -c $(CFLAGS) -o $@ $<
+
+$(LIBNAME): $(C_LIB_OBJ)
 	ar cr $@ $^
 
-gonzo.o: gonzo.c
+$(EXENAME): $(C_EXE_OBJ) $(LIBNAME)
+	$(CC) $(CFLAGS) -o$@ $< -L. -l$(LIBRARY)
 
-gonzo: gonzo.o libus.a
-	$(CC) $(CFLAGS) -o$@ gonzo.o -L. -lus
-
-all: gonzo
+all: $(EXENAME)
 
 clean:
-	rm -f *.o *.a *~
-	rm -f gonzo
+	rm -f $(EXENAME)
+	rm -f $(LIBNAME)
+	rm -f $(C_LIB_OBJ) $(C_EXE_OBJ)
+	rm -f *~
