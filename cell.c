@@ -14,8 +14,8 @@ Cell* bool_t = &cell_bool_t;
 Cell* bool_f = &cell_bool_f;
 
 static int get_str_len(const char* str, int len);
-static void cell_printer(const Cell* cell, FILE* fp, int dump, int eol);
-static void cell_print_all(const Cell* cell, FILE* fp);
+static int cell_printer(const Cell* cell, int dump, char* buf);
+static int cell_print_all(const Cell* cell, char* buf);
 
 void cell_destroy(Cell* cell)
 {
@@ -166,12 +166,19 @@ Cell* cell_cdr(const Cell* cell)
 
 void cell_print(const Cell* cell, FILE* fp, int eol)
 {
-    cell_printer(cell, fp, 0, eol);
+    char buf[10 * 1024];
+    cell_printer(cell, 0, buf);
+    fputs(buf, fp);
+    if (eol) {
+        fputc('\n', fp);
+    }
+    fflush(fp);
 }
 
-void cell_dump(const Cell* cell, FILE* fp, int eol)
+const char* cell_dump(const Cell* cell, char* buf)
 {
-    cell_printer(cell, fp, 1, eol);
+    cell_printer(cell, 1, buf);
+    return buf;
 }
 
 static int get_str_len(const char* str, int len)
@@ -185,7 +192,7 @@ static int get_str_len(const char* str, int len)
     return len;
 }
 
-static void cell_printer(const Cell* cell, FILE* fp, int dump, int eol)
+static int cell_printer(const Cell* cell, int dump, char* buf)
 {
     static char* Tag[CELL_LAST] = {
         "NONE",
@@ -197,12 +204,13 @@ static void cell_printer(const Cell* cell, FILE* fp, int dump, int eol)
         "PROC",
         "NATIVE",
     };
+    int pos = 0;
 
     if (dump) {
-        fputs("cell[", fp);
+        pos += sprintf(buf + pos, "cell[");
     }
     if (!cell) {
-        fputs("NULL", fp);
+        pos += sprintf(buf + pos, "NULL");
     }
     else {
         if (dump) {
@@ -210,105 +218,107 @@ static void cell_printer(const Cell* cell, FILE* fp, int dump, int eol)
             if (cell->tag < CELL_LAST) {
                 str = Tag[cell->tag];
             }
-            fprintf(fp, "%d:%s:%p", cell->tag, str, cell);
+            pos += sprintf(buf + pos, "%d:%s:%p", cell->tag, str, cell);
             if (cell->tag != CELL_NONE) {
-                fputc(':', fp);
+                pos += sprintf(buf + pos, ":");
             }
         }
         if (cell->tag != CELL_CONS) {
-            cell_print_all(cell, fp);
+            pos += cell_print_all(cell, buf + pos);
         }
         else {
-            fputc('(', fp);
-            cell_print_all(cell, fp);
-            fputc(')', fp);
+            pos += sprintf(buf + pos, "(");
+            pos += cell_print_all(cell, buf + pos);
+            pos += sprintf(buf + pos, ")");
         }
     }
     if (dump) {
-        fputs("]", fp);
+        pos += sprintf(buf + pos, "]");
     }
-    if (eol) {
-        fputc('\n', fp);
-    }
+    return pos;
 }
 
-static void cell_print_all(const Cell* cell, FILE* fp)
+static int cell_print_all(const Cell* cell, char* buf)
 {
+    int pos = 0;
+
     if (cell == nil) {
-        fputs(CELL_STR_NIL, fp);
-        return;
+        pos += sprintf(buf + pos, "%s", CELL_STR_NIL);
+        return pos;
     }
     if (cell == bool_t) {
-        fputs(CELL_STR_BOOL_T, fp);
-        return;
+        pos += sprintf(buf + pos, "%s", CELL_STR_BOOL_T);
+        return pos;
     }
     if (cell == bool_f) {
-        fputs(CELL_STR_BOOL_F, fp);
-        return;
+        pos += sprintf(buf + pos, "%s", CELL_STR_BOOL_F);
+        return pos;
     }
 
     switch (cell->tag) {
         case CELL_NONE:
-            fputs(CELL_STR_NIL, fp);
+            pos += sprintf(buf + pos, "%s", CELL_STR_NIL);
             break;
 
         case CELL_INT:
-            fprintf(fp, "%ld", cell->ival);
+            pos += sprintf(buf + pos, "%ld", cell->ival);
             break;
 
         case CELL_REAL:
-            fprintf(fp, "%lf", cell->rval);
+            pos += sprintf(buf + pos, "%lf", cell->rval);
             break;
 
         case CELL_STRING:
-            fprintf(fp, "\"%s\"", cell->sval);
+            pos += sprintf(buf + pos, "\"%s\"", cell->sval);
             break;
 
         case CELL_SYMBOL:
-            fprintf(fp, "%s", cell->sval);
+            pos += sprintf(buf + pos, "%s", cell->sval);
             break;
 
         case CELL_PROC: {
 #if 1
-            fprintf(fp, "<%s>", "*CODE*");
+            pos += sprintf(buf + pos, "<%s>", "*CODE*");
 #else
             const Procedure* proc = &cell->pval;
-            fputc('(', fp);
-            cell_print_all(proc->params, fp);
-            fputs("):(", fp);
-            cell_print_all(proc->body, fp);
-            fputc(')', fp);
+            pos += sprintf(buf + pos, "(");
+            pos += cell_print_all(proc->params, buf + pos);
+            pos += sprintf(buf + pos, "):(");
+            pos += cell_print_all(proc->body, buf + pos);
+            pos += sprintf(buf + pos, ")");
 #endif
             break;
         }
 
         case CELL_NATIVE:
-            fprintf(fp, "<%s>", cell->nval.label);
+            pos += sprintf(buf + pos, "<%s>", cell->nval.label);
             break;
 
         case CELL_CONS: {
             const Cons* cons = &cell->cons;
             if (cons->car->tag == CELL_CONS) {
-                fputc('(', fp);
-                cell_print_all(cons->car, fp);
-                fputc(')', fp);
+                pos += sprintf(buf + pos, "(");
+                pos += cell_print_all(cons->car, buf + pos);
+                pos += sprintf(buf + pos, ")");
             }
             else {
-                cell_print_all(cons->car, fp);
+                pos += cell_print_all(cons->car, buf + pos);
             }
 
             if (cons->cdr == nil) {
                 // end of list, nothing else to do
             }
             else if (cons->cdr->tag == CELL_CONS) {
-                fputc(' ', fp);
-                cell_print_all(cons->cdr, fp);
+                pos += sprintf(buf + pos, " ");
+                pos += cell_print_all(cons->cdr, buf + pos);
             }
             else {
-                fputs(" . ", fp);
-                cell_print_all(cons->cdr, fp);
+                pos += sprintf(buf + pos, " . ");
+                pos += cell_print_all(cons->cdr, buf + pos);
             }
             break;
         }
     }
+
+    return pos;
 }

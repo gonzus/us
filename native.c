@@ -3,16 +3,21 @@
 #include "cell.h"
 #include "native.h"
 
+// #define LOG_LEVEL LOG_LEVEL_DEBUG
+#include "log.h"
+#if LOG_LEVEL <= LOG_LEVEL_DEBUG
+static char dumper[10*1024];
+#endif
+
 #define CELL_LOOP(name, pos, args, body) \
     do { \
-        printf("Entering native %s\n", name); \
+        LOG(DEBUG, ("Entering native %s", name)); \
         for (Cell* c = args; c && c != nil; c = c->cons.cdr, ++pos) { \
             Cell* arg = c->cons.car; \
-            printf("Arg #%d ", pos); \
-            cell_dump(arg, stdout, 1); \
+            LOG(DEBUG, ("Arg #%d %s", pos, cell_dump(arg, dumper))); \
             do body while (0); \
         } \
-        printf("Leaving native %s\n", name); \
+        LOG(DEBUG, ("Leaving native %s", name)); \
     } while (0)
 
 Cell* func_add(Cell* args)
@@ -152,8 +157,7 @@ Cell* func_div(Cell* args)
         }
         if (!ok) break;
     });
-    printf("DIV: pos %d, ok %d, isaw %d, rsaw %d, iret %ld, rret %lf\n",
-            pos, ok, isaw, rsaw, iret, rret);
+    LOG(DEBUG, ("DIV: pos %d, ok %d, isaw %d, rsaw %d, iret %ld, rret %lf", pos, ok, isaw, rsaw, iret, rret));
     if (pos == 0) return nil;
     if (pos == 1) {
         if (isaw) {
@@ -203,7 +207,7 @@ Cell* func_eq(Cell* args)
         }
         if (!ok) { break; }
     });
-    printf("EQ => %d\n", ok);
+    LOG(DEBUG, ("EQ => %d", ok));
     return ok ? bool_t : bool_f;
 }
 
@@ -225,7 +229,7 @@ Cell* func_gt(Cell* args)
         if (!ok) { break; }
         mem = arg;
     });
-    printf("GT => %d\n", ok);
+    LOG(DEBUG, ("GT => %d", ok));
     return ok ? bool_t : bool_f;
 }
 
@@ -247,7 +251,7 @@ Cell* func_lt(Cell* args)
         if (!ok) { break; }
         mem = arg;
     });
-    printf("LT => %d\n", ok);
+    LOG(DEBUG, ("LT => %d", ok));
     return ok ? bool_t : bool_f;
 }
 
@@ -263,8 +267,7 @@ Cell* func_cons(Cell* args)
     if (pos == 2) {
         ret = cell_cons(mem[0], mem[1]);
     }
-    printf("CONS: ");
-    cell_dump(ret, stdout, 1);
+    LOG(DEBUG, ("CONS: %s", cell_dump(ret, dumper)));
     return ret;
 }
 
@@ -280,8 +283,7 @@ Cell* func_car(Cell* args)
     if (pos == 1) {
         ret = cell_car(mem[0]);
     }
-    printf("CAR: ");
-    cell_dump(ret, stdout, 1);
+    LOG(DEBUG, ("CAR: %s", cell_dump(ret, dumper)));
     return ret;
 }
 
@@ -297,8 +299,7 @@ Cell* func_cdr(Cell* args)
     if (pos == 1) {
         ret = cell_cdr(mem[0]);
     }
-    printf("CDR: ");
-    cell_dump(ret, stdout, 1);
+    LOG(DEBUG, ("CDR: %s", cell_dump(ret, dumper)));
     return ret;
 }
 

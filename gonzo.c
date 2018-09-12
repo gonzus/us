@@ -5,6 +5,8 @@
 #include "eval.h"
 #include "native.h"
 
+#define USE_REPL 0
+
 #if 1
 static void test_nil(void)
 {
@@ -74,23 +76,28 @@ static void test_symbol(void)
     const char* name = "set-gonzo!";
     Env* parent = env_create(0);
     printf("Created parent %p\n", parent);
+    fflush(stdout);
     {
         Symbol* s = env_lookup(parent, name, 1);
         Cell* c = cell_create_int(11);
         s->value = c;
         printf("Inserted symbol [%s] in parent => %p\n", name, s);
+        fflush(stdout);
     }
     {
         Symbol* s = env_lookup(parent, name, 0);
         printf("Looked up symbol [%s] in parent => %p\n", name, s);
+        fflush(stdout);
     }
 
     Env* child = env_create(0);
     env_chain(child, parent);
     printf("Created child %p and chained to parent %p\n", child, parent);
+    fflush(stdout);
     {
         Symbol* s = env_lookup(child, name, 0);
         printf("Looked up symbol [%s] in child => %p\n", name, s);
+        fflush(stdout);
     }
 }
 
@@ -117,6 +124,7 @@ static void test_parse(void)
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;
         printf("===== Parsing [%s]:\n", code);
+        fflush(stdout);
         parser_parse(parser, code);
         Cell* c = parser_result(parser);
         if (!c) {
@@ -285,12 +293,14 @@ static void test_eval(void)
     for (int j = 0; j < sizeof(data) / sizeof(data[0]); ++j) {
         const char* code = data[j].code;
         printf("===== Parsing [%s]:\n", code);
+        fflush(stdout);
         parser_parse(parser, code);
         Cell* c = parser_result(parser);
         if (!c) {
             continue;
         }
         cell_print(c, stdout, 1);
+
         const Cell* r = cell_eval(c, env);
         printf("[%p] => ", r);
         cell_print(r, stdout, 1);
@@ -300,6 +310,7 @@ static void test_eval(void)
 }
 #endif
 
+#if defined(USE_REPL) && USE_REPL > 0
 static void repl(void)
 {
     Parser* parser = parser_create(0);
@@ -312,14 +323,14 @@ static void repl(void)
             break;
         }
         printf("--> WILL PARSE [%s] <--\n", buf);
+        fflush(stdout);
         parser_parse(parser, buf);
         Cell* c = parser_result(parser);
         if (!c) {
             continue;
         }
-        printf("==> EVAL [");
+        printf("==> EVAL: ");
         cell_print(c, stdout, 0);
-        printf("] <==\n");
 
         const Cell* r = cell_eval(c, env);
         printf("==> [%p] ", r);
@@ -328,6 +339,7 @@ static void repl(void)
     env_destroy(env);
     parser_destroy(parser);
 }
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -343,8 +355,9 @@ int main(int argc, char* argv[])
     test_eval();
 #endif
 
-#if 0
+#if defined(USE_REPL) && USE_REPL > 0
     printf("Special values: nil = %p, #t = %p, #f = %p\n", nil, bool_t, bool_f);
+    fflush(stdout);
     repl();
 #endif
 

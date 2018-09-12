@@ -1,7 +1,9 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "env.h"
+
+#define LOG_LEVEL LOG_LEVEL_DEBUG
+#include "log.h"
 
 #define ENV_DEFAULT_SIZE 1021
 
@@ -9,7 +11,7 @@ static unsigned long hash(const char* str);
 
 void env_destroy(Env* env)
 {
-    printf("ENV: destroying %p, %d buckets, parent %p\n", env, env->size, env->parent);
+    LOG(DEBUG, ("ENV: destroying %p, %d buckets, parent %p", env, env->size, env->parent));
     for (int j = 0; j < env->size; ++j) {
         Symbol* tmp = 0;
         for (Symbol* sym = env->table[j]; sym != 0; ) {
@@ -31,7 +33,7 @@ Env* env_create(int size)
     memset(env, 0, sizeof(Env));
     env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
     env->table = calloc(env->size, sizeof(Symbol));
-    printf("ENV: created %p, %d buckets\n", env, env->size);
+    LOG(DEBUG, ("ENV: created %p, %d buckets", env, env->size));
     return env;
 }
 
@@ -42,7 +44,7 @@ void env_chain(Env* env, Env* parent)
     }
 
     env->parent = parent;
-    printf("ENV: chained %p to parent %p\n", env, env->parent);
+    LOG(DEBUG, ("ENV: chained %p to parent %p", env, env->parent));
 }
 
 Symbol* env_lookup(Env* env, const char* name, int create)

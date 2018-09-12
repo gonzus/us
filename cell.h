@@ -1,6 +1,8 @@
 #ifndef CELL_H_
 #define CELL_H_
 
+#include <stdio.h>
+
 // A Cell stores any possible value (integer, conses, others)
 // using a union.
 //
@@ -99,6 +101,6 @@ Cell* cell_cdr(const Cell* cell);
 // Print contents of cell to given stream, optionally adding a \n
 void cell_print(const Cell* cell, FILE* fp, int eol);
 
-void cell_dump(const Cell* cell, FILE* fp, int eol);
+const char* cell_dump(const Cell* cell, char* buf);
 
 #endif
