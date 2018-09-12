@@ -114,7 +114,7 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
         cell_dump(arg, stdout, 1);
     }
     // and only *now* we set this env's parent
-    proc_env->parent = proc->pval.env;
+    env_chain(proc_env, proc->pval.env);
 
     // and finally eval the proc body in this newly created env
     ret = cell_eval(proc->pval.body, proc_env);
