@@ -109,15 +109,22 @@ static Cell* cell_apply(Cell* cell, Env* env)
 
 static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
 {
-    // We create a new env where we can bind all evaled args in fresh slots for
-    // the params (see *COMMENT* below)
-    Env* proc_env = env_create(0);
+    int pos = 0;
     Cell* p = 0; // pointer to current parameter
     Cell* a = 0; // pointer to current argument
+
+    // count how many arguments we have
+    for (p = proc->pval.params, a = cell->cons.cdr, pos = 0;
+         p && p != nil && a && a != nil;
+         p = p->cons.cdr, a = a->cons.cdr, ++pos) {
+    }
+
+    // We create a new small-ish environment where we can bind all evaled args
+    // in fresh slots for the params (see *COMMENT* below)
+    Env* local = env_create(pos + 1);
     printf("EVAL: proc on ");
     cell_dump(cell, stdout, 1);
-    int pos = 0;
-    for (p = proc->pval.params, a = cell->cons.cdr;
+    for (p = proc->pval.params, a = cell->cons.cdr, pos= 0;
          p && p != nil && a && a != nil;
          p = p->cons.cdr, a = a->cons.cdr, ++pos) {
         Cell* par = p->cons.car;
@@ -132,7 +139,7 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
             return nil;
         }
         // now we create a symbol with the correct name=value association
-        Symbol* sym = env_lookup(proc_env, par->sval, 1);
+        Symbol* sym = env_lookup(local, par->sval, 1);
         if (!sym) {
             printf("Could not create binding for arg #%d [%s]\n", pos, par->sval);
             return nil;
@@ -142,12 +149,12 @@ static Cell* cell_apply_proc(Cell* cell, Env* env, Cell* proc)
         cell_dump(arg, stdout, 1);
     }
     // *COMMENT* only *now* we set this env's parent
-    env_chain(proc_env, proc->pval.env);
+    env_chain(local, proc->pval.env);
 
     // finally eval the proc body in this newly created env
-    Cell* ret = cell_eval(proc->pval.body, proc_env);
+    Cell* ret = cell_eval(proc->pval.body, local);
 
-    // We cannot destroy the proc_env variable, because it may have been
+    // We cannot destroy the local variable, because it may have been
     // "captured" and will be returned to the caller; this  happens when
     // returning a lambda as the result of calling a procedure
     return ret;
@@ -201,7 +208,7 @@ static Cell* cell_set_value(Cell* cell, Env* env, int create)
         return nil;
     }
 
-    printf("EVAL: set value for [%s] (create: %d) to ", args[1]->sval, create);
+    printf("EVAL: %s value for [%s] to ", create ? "define" : "set", args[1]->sval);
     cell_dump(args[2], stdout, 1);
     Symbol* symbol = env_lookup(env, args[1]->sval, create);
     if (!symbol) {

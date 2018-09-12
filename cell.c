@@ -199,7 +199,7 @@ static void cell_printer(const Cell* cell, FILE* fp, int dump, int eol)
     };
 
     if (dump) {
-        fputs("cell<", fp);
+        fputs("cell[", fp);
     }
     if (!cell) {
         fputs("NULL", fp);
@@ -225,7 +225,7 @@ static void cell_printer(const Cell* cell, FILE* fp, int dump, int eol)
         }
     }
     if (dump) {
-        fputs(">", fp);
+        fputs("]", fp);
     }
     if (eol) {
         fputc('\n', fp);
@@ -268,9 +268,19 @@ static void cell_print_all(const Cell* cell, FILE* fp)
             fprintf(fp, "%s", cell->sval);
             break;
 
-        case CELL_PROC:
+        case CELL_PROC: {
+#if 1
             fprintf(fp, "<%s>", "*CODE*");
+#else
+            const Procedure* proc = &cell->pval;
+            fputc('(', fp);
+            cell_print_all(proc->params, fp);
+            fputs("):(", fp);
+            cell_print_all(proc->body, fp);
+            fputc(')', fp);
+#endif
             break;
+        }
 
         case CELL_NATIVE:
             fprintf(fp, "<%s>", cell->nval.label);
