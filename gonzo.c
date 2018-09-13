@@ -375,6 +375,13 @@ static void test_eval_complex(void)
         const char* expected;
         const char* code;
     } data[] = {
+        { "()", "(define nil (quote ()))" },
+        { "<*CODE*>", "(define null? (lambda (L) (= L nil)))" },
+        { "<*CODE*>", "(define length (lambda (L) (if (= L nil) 0 (+ 1 (length (cdr L))))))" },
+        { "<*CODE*>", "(define empty? (lambda (L) (= 0 (length L))))" },
+        { "(1 2 3 4)", "(define L (quote (1 2 3 4)))" },
+        { "4", "(length L)" },
+        { "#f", "(empty? L)" },
         { "<*CODE*>", " (define positive (lambda (x) (> x 0))) " },
         { "#t", " (positive  7) " },
         { "#f", " (positive -7) " },
