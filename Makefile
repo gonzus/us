@@ -3,7 +3,7 @@ first: all
 CFLAGS += -g
 CFLAGS += -I.
 CFLAGS += -Wall
-CFLAGS += -Werror
+CFLAGS += -Wextra
 
 C_LIB_SRC = \
 	log.c \
