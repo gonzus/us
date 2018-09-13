@@ -7,7 +7,7 @@
 
 // An entry in the hash table
 typedef struct Symbol {
-    const char* name;
+    char* name;
     const struct Cell* value;
     struct Symbol* next;
 } Symbol;

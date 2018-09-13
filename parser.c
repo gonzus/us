@@ -5,6 +5,11 @@
 #include "cell.h"
 #include "parser.h"
 
+#if !defined(MEM_DEBUG)
+#define MEM_DEBUG 1
+#endif
+#include "mem.h"
+
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
 
@@ -42,9 +47,11 @@ static int token(Parser* parser, int token);
 
 Parser* parser_create(int depth)
 {
-    Parser* parser = (Parser*) calloc(1, sizeof(Parser));
+    Parser* parser = 0;
+    MEM_ALLOC_TYPE(parser, 1, Parser);
+
     parser->depth = depth <= 0 ?  PARSER_DEFAULT_DEPTH : depth;
-    parser->exp = calloc(parser->depth, sizeof(Expression));
+    MEM_ALLOC_TYPE(parser->exp, parser->depth, Expression);
 
     parser_reset(parser, 0);
     return parser;
@@ -52,8 +59,8 @@ Parser* parser_create(int depth)
 
 void parser_destroy(Parser* parser)
 {
-    free(parser->exp);
-    free(parser);
+    MEM_FREE_TYPE(parser->exp, parser->depth, Expression);
+    MEM_FREE_TYPE(parser, 1, Parser);
 }
 
 void parser_reset(Parser* parser, const char* str)

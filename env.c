@@ -2,6 +2,11 @@
 #include <string.h>
 #include "env.h"
 
+#if !defined(MEM_DEBUG)
+#define MEM_DEBUG 0
+#endif
+#include "mem.h"
+
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
 
@@ -17,21 +22,23 @@ void env_destroy(Env* env)
         for (Symbol* sym = env->table[j]; sym != 0; ) {
             tmp = sym;
             sym = sym->next;
-            free(tmp);
+            MEM_FREE_SIZE(tmp->name, 0);
+            MEM_FREE_TYPE(tmp, 1, Symbol);
         }
     }
-    free(env->table);
+    MEM_FREE_TYPE(env->table, env->size, Symbol*);
     env->table = 0;
     env->size = 0;
     env->parent = 0;
-    free(env);
+    MEM_FREE_TYPE(env, 1, Env);
 }
 
 Env* env_create(int size)
 {
-    Env* env = (Env*) calloc(1, sizeof(Env));
+    Env* env = 0;
+    MEM_ALLOC_TYPE(env, 1, Env);
     env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
-    env->table = calloc(env->size, sizeof(Symbol));
+    MEM_ALLOC_TYPE(env->table, env->size, Symbol*);
     LOG(DEBUG, ("ENV: created %p, %d buckets", env, env->size));
     return env;
 }
@@ -67,10 +74,8 @@ Symbol* env_lookup(Env* env, const char* name, int create)
 
     // Not found so far, maybe create it?
     if (create) {
-        sym = (Symbol*) calloc(1, sizeof(Symbol));
-        int len = strlen(name);
-        sym->name = malloc(len + 1);
-        memcpy((void*) sym->name, name, len + 1);
+        MEM_ALLOC_TYPE(sym, 1, Symbol);
+        MEM_ALLOC_STRDUP(sym->name, name);
         sym->next = env->table[h];
         env->table[h] = sym;
     }

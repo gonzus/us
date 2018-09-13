@@ -1,5 +1,7 @@
 first: all
 
+# CFLAGS += -DMEM_DEBUG=0
+# CFLAGS += -DMEM_DEBUG=1
 CFLAGS += -g
 CFLAGS += -I.
 CFLAGS += -Wall
@@ -7,6 +9,7 @@ CFLAGS += -Wextra
 
 C_LIB_SRC = \
 	log.c \
+	mem.c \
 	cell.c \
 	env.c \
 	parser.c \

@@ -3,6 +3,11 @@
 #include "env.h"
 #include "cell.h"
 
+#if !defined(MEM_DEBUG)
+#define MEM_DEBUG 0
+#endif
+#include "mem.h"
+
 // These are special values that have a single unique instance
 static Cell cell_nil    = { CELL_NONE, {0} };
 static Cell cell_bool_t = { CELL_INT , {1} };
@@ -18,15 +23,15 @@ static int get_str_len(const char* str, int len);
 static int cell_printer(const Cell* cell, int debug, char* buf);
 static int cell_print_all(const Cell* cell, char* buf);
 
-void cell_destroy(const Cell* cell)
+void cell_destroy(Cell* cell)
 {
     switch (cell->tag) {
         case CELL_STRING:
         case CELL_SYMBOL:
-            free((void*) cell->sval);
+            MEM_FREE_SIZE(cell->sval, 0);
             break;
     }
-    free((void*) cell);
+    MEM_FREE_TYPE(cell, 1, Cell);
 }
 
 Cell* cell_create_int(long value)
@@ -97,8 +102,10 @@ Cell* cell_create_string(const char* value, int len)
 {
     Cell* cell = cell_build(CELL_STRING);
     len = get_str_len(value, len);
-    cell->sval = malloc(len + 1);
-    memcpy(cell->sval, value ? value : "", len);
+    MEM_ALLOC_SIZE(cell->sval, len + 1);
+    if (value && len) {
+        memcpy(cell->sval, value, len);
+    }
     cell->sval[len] = '\0';
     return cell;
 }
@@ -173,7 +180,8 @@ const char* cell_dump(const Cell* cell, int debug, char* buf)
 
 static Cell* cell_build(int tag)
 {
-    Cell* cell = (Cell*) calloc(1, sizeof(Cell));
+    Cell* cell = 0;
+    MEM_ALLOC_TYPE(cell, 1, Cell);
     cell->tag = tag;
     return cell;
 }

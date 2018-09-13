@@ -70,7 +70,7 @@ extern const Cell* bool_t;
 extern const Cell* bool_f;
 
 // Destroy a cell
-void cell_destroy(const Cell* cell);
+void cell_destroy(Cell* cell);
 
 // Create a cell with an integer value
 Cell* cell_create_int(long value);

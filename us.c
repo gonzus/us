@@ -7,6 +7,11 @@
 #include "eval.h"
 #include "us.h"
 
+#if !defined(MEM_DEBUG)
+#define MEM_DEBUG 1
+#endif
+#include "mem.h"
+
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
 
@@ -18,7 +23,8 @@ typedef struct NativeData {
 static Env* make_global_env(void);
 
 US* us_create(void) {
-    US* us = (US*) calloc(1, sizeof(US));
+    US* us = 0;
+    MEM_ALLOC_TYPE(us, 1, US);
     LOG(DEBUG, ("US: created"));
     us->env = make_global_env();
     us->parser = parser_create(0);
@@ -30,7 +36,7 @@ void us_destroy(US* us)
     parser_destroy(us->parser);
     env_destroy(us->env);
     LOG(DEBUG, ("US: destroyed"));
-    free(us);
+    MEM_FREE_TYPE(us, 1, US);
 }
 
 const Cell* us_eval_str(US* us, const char* code)
