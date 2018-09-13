@@ -18,8 +18,7 @@ typedef struct NativeData {
 static Env* make_global_env(void);
 
 US* us_create(void) {
-    US* us = (US*) malloc(sizeof(US));
-    memset(us, 0, sizeof(US));
+    US* us = (US*) calloc(1, sizeof(US));
     LOG(DEBUG, ("US: created"));
     us->env = make_global_env();
     us->parser = parser_create(0);

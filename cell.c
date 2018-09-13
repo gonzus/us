@@ -8,10 +8,12 @@ static Cell cell_nil    = { CELL_NONE, {0} };
 static Cell cell_bool_t = { CELL_INT , {1} };
 static Cell cell_bool_f = { CELL_INT , {0} };
 
+// Global references to the special values
 const Cell* nil    = &cell_nil;
 const Cell* bool_t = &cell_bool_t;
 const Cell* bool_f = &cell_bool_f;
 
+static Cell* cell_build(int tag);
 static int get_str_len(const char* str, int len);
 static int cell_printer(const Cell* cell, int debug, char* buf);
 static int cell_print_all(const Cell* cell, char* buf);
@@ -29,8 +31,7 @@ void cell_destroy(const Cell* cell)
 
 Cell* cell_create_int(long value)
 {
-    Cell* cell = (Cell*) malloc(sizeof(Cell));
-    cell->tag = CELL_INT;
+    Cell* cell = cell_build(CELL_INT);
     cell->ival = value;
     return cell;
 }
@@ -57,8 +58,7 @@ Cell* cell_create_int_from_string(const char* value, int len)
 
 Cell* cell_create_real(double value)
 {
-    Cell* cell = (Cell*) malloc(sizeof(Cell));
-    cell->tag = CELL_REAL;
+    Cell* cell = cell_build(CELL_REAL);
     cell->rval = value;
     return cell;
 }
@@ -95,14 +95,11 @@ Cell* cell_create_real_from_string(const char* value, int len)
 
 Cell* cell_create_string(const char* value, int len)
 {
-    Cell* cell = (Cell*) malloc(sizeof(Cell));
-    cell->tag = CELL_STRING;
-
+    Cell* cell = cell_build(CELL_STRING);
     len = get_str_len(value, len);
     cell->sval = malloc(len + 1);
     memcpy(cell->sval, value ? value : "", len);
     cell->sval[len] = '\0';
-
     return cell;
 }
 
@@ -110,28 +107,23 @@ Cell* cell_create_symbol(const char* value, int len)
 {
     Cell* cell = cell_create_string(value, len);
     cell->tag = CELL_SYMBOL;
-
     return cell;
 }
 
 Cell* cell_create_procedure(const Cell* params, const Cell* body, Env* env)
 {
-    Cell* cell = (Cell*) malloc(sizeof(Cell));
-    cell->tag = CELL_PROC;
+    Cell* cell = cell_build(CELL_PROC);
     cell->pval.params = params;
     cell->pval.body = body;
     cell->pval.env = env;  // I love you, lexical binding
-
     return cell;
 }
 
 Cell* cell_create_native(const char* label, NativeFunc* func)
 {
-    Cell* cell = (Cell*) malloc(sizeof(Cell));
-    cell->tag = CELL_NATIVE;
+    Cell* cell = cell_build(CELL_NATIVE);
     cell->nval.label = label;
     cell->nval.func = func;
-
     return cell;
 }
 
@@ -140,8 +132,7 @@ Cell* cell_create_native(const char* label, NativeFunc* func)
 // some checking for their args...
 Cell* cell_cons(const Cell* car, const Cell* cdr)
 {
-    Cell* cell = (Cell*) malloc(sizeof(Cell));
-    cell->tag = CELL_CONS;
+    Cell* cell = cell_build(CELL_CONS);
     cell->cons.car = car;
     cell->cons.cdr = cdr;
     return cell;
@@ -178,6 +169,13 @@ const char* cell_dump(const Cell* cell, int debug, char* buf)
 {
     cell_printer(cell, debug, buf);
     return buf;
+}
+
+static Cell* cell_build(int tag)
+{
+    Cell* cell = (Cell*) calloc(1, sizeof(Cell));
+    cell->tag = tag;
+    return cell;
 }
 
 static int get_str_len(const char* str, int len)

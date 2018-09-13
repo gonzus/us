@@ -42,7 +42,7 @@ static int token(Parser* parser, int token);
 
 Parser* parser_create(int depth)
 {
-    Parser* parser = (Parser*) malloc(sizeof(Parser));
+    Parser* parser = (Parser*) calloc(1, sizeof(Parser));
     parser->depth = depth <= 0 ?  PARSER_DEFAULT_DEPTH : depth;
     parser->exp = calloc(parser->depth, sizeof(Expression));
 
@@ -269,14 +269,14 @@ static int token(Parser* parser, int token)
         return 0;
     }
 
-    Cell* new_cell = cell_cons(cell, nil);
+    Cell* cons = cell_cons(cell, nil);
     if (!exp->frst) {
-        exp->frst = new_cell;
+        exp->frst = cons;
     }
     if (exp->last) {
-        exp->last->cons.cdr = new_cell;
+        exp->last->cons.cdr = cons;
     }
-    exp->last = new_cell;
+    exp->last = cons;
 
     return 0;
 }

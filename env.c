@@ -29,8 +29,7 @@ void env_destroy(Env* env)
 
 Env* env_create(int size)
 {
-    Env* env = (Env*) malloc(sizeof(Env));
-    memset(env, 0, sizeof(Env));
+    Env* env = (Env*) calloc(1, sizeof(Env));
     env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
     env->table = calloc(env->size, sizeof(Symbol));
     LOG(DEBUG, ("ENV: created %p, %d buckets", env, env->size));
@@ -68,9 +67,10 @@ Symbol* env_lookup(Env* env, const char* name, int create)
 
     // Not found so far, maybe create it?
     if (create) {
-        sym = (Symbol*) malloc(sizeof(Symbol));
-        sym->name = strdup(name);
-        sym->value = 0;
+        sym = (Symbol*) calloc(1, sizeof(Symbol));
+        int len = strlen(name);
+        sym->name = malloc(len + 1);
+        memcpy((void*) sym->name, name, len + 1);
         sym->next = env->table[h];
         env->table[h] = sym;
     }
