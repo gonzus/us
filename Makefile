@@ -14,16 +14,11 @@ C_LIB_SRC = \
 	native.c \
 	us.c \
 
-C_EXE_SRC = \
-	gonzo.c \
-
 LIBRARY = us
 
 C_LIB_HDR = $(C_LIB_SRC:.c=.h)
 C_LIB_OBJ = $(C_LIB_SRC:.c=.o)
-C_EXE_OBJ = $(C_EXE_SRC:.c=.o)
 LIBNAME = lib$(LIBRARY).a
-EXENAME = $(C_EXE_SRC:.c=)
 
 %.o: %.c $(C_LIB_HDR)
 	$(CC) -c $(CFLAGS) -o $@ $<
@@ -31,13 +26,16 @@ EXENAME = $(C_EXE_SRC:.c=)
 $(LIBNAME): $(C_LIB_OBJ)
 	ar cr $@ $^
 
-$(EXENAME): $(C_EXE_OBJ) $(LIBNAME)
+gonzo: gonzo.o $(LIBNAME)
 	$(CC) $(CFLAGS) -o$@ $< -L. -l$(LIBRARY)
 
-all: $(EXENAME)
+repl: repl.o $(LIBNAME)
+	$(CC) $(CFLAGS) -o$@ $< -L. -l$(LIBRARY)
+
+all: gonzo repl
 
 clean:
-	rm -f $(EXENAME)
 	rm -f $(LIBNAME)
-	rm -f $(C_LIB_OBJ) $(C_EXE_OBJ)
+	rm -f gonzo repl
+	rm -f *.o
 	rm -f *~
