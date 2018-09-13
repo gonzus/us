@@ -10,15 +10,6 @@
 
 #define PARSER_DEFAULT_DEPTH 128
 
-#define CHECK_STATE(p, s, t, n, b, c, d) \
-    if ((p)->state == (s)) { \
-        if (t != TOKEN_NONE) token(p, t); \
-        (p)->state = n; \
-        if (d >= 0) (p)->beg = (p)->pos + d; \
-        if (b) break; \
-        if (c) continue; \
-    } \
-
 // Possible parser->states for our parser; it starts in STATE_NORMAL
 #define STATE_NORMAL 0
 #define STATE_INT    1
@@ -36,6 +27,16 @@
 #define TOKEN_LPAREN 5
 #define TOKEN_RPAREN 6
 #define TOKEN_LAST   7
+
+// Check and take action while parsing
+#define CHECK_STATE(p, s, t, n, b, c, d) \
+    if ((p)->state == (s)) {                 /* check current state  */ \
+        if (t != TOKEN_NONE) token(p, t);    /* maybe emit token     */ \
+        (p)->state = n;                      /* switch to next state */ \
+        if (d >= 0) (p)->beg = (p)->pos + d; /* maybe remember pos   */ \
+        if (b) break;                        /* maybe break          */ \
+        if (c) continue;                     /* maybe continue       */ \
+    } \
 
 static int token(Parser* parser, int token);
 
@@ -164,20 +165,27 @@ void parser_parse(Parser* parser, const char* str)
     }
 }
 
-static int token(Parser* parser, int token)
-{
 #if LOG_LEVEL <= LOG_LEVEL_DEBUG
-    static const char* Token[TOKEN_LAST] = {
-        "TOKEN_NONE",
-        "TOKEN_INT",
-        "TOKEN_REAL",
-        "TOKEN_STRING",
-        "TOKEN_SYMBOL",
-        "TOKEN_LPAREN",
-        "TOKEN_RPAREN",
-    };
+static const char* State[STATE_LAST] = {
+    "STATE_NORMAL",
+    "STATE_INT",
+    "STATE_REAL",
+    "STATE_STRING",
+    "STATE_SYMBOL",
+};
+static const char* Token[TOKEN_LAST] = {
+    "TOKEN_NONE",
+    "TOKEN_INT",
+    "TOKEN_REAL",
+    "TOKEN_STRING",
+    "TOKEN_SYMBOL",
+    "TOKEN_LPAREN",
+    "TOKEN_RPAREN",
+};
 #endif
 
+static int token(Parser* parser, int token)
+{
     const char* tok = parser->str + parser->beg;;
     int len = 0;
     switch (token) {
@@ -223,16 +231,14 @@ static int token(Parser* parser, int token)
 
         case TOKEN_SYMBOL:
             if (memcmp(tok, CELL_STR_BOOL_T, sizeof(CELL_STR_BOOL_T) - 1) == 0) {
-                // Special case: #t
-                cell = bool_t;
+                cell = bool_t; // Special case: #t
+                break;
             }
-            else if (memcmp(tok, CELL_STR_BOOL_F, sizeof(CELL_STR_BOOL_F) - 1) == 0) {
-                // Special case: #f
-                cell = bool_f;
+            if (memcmp(tok, CELL_STR_BOOL_F, sizeof(CELL_STR_BOOL_F) - 1) == 0) {
+                cell = bool_f; // Special case: #f
+                break;
             }
-            else {
-                cell = cell_create_symbol(tok, len);
-            }
+            cell = cell_create_symbol(tok, len);
             break;
 
         case TOKEN_LPAREN:
@@ -244,9 +250,8 @@ static int token(Parser* parser, int token)
         case TOKEN_RPAREN:
             cell = parser->exp[parser->level].frst;
             --parser->level;
-            // Special case: () => nil
             if (!cell) {
-                cell = nil;
+                cell = nil; // Special case: () => nil
             }
             break;
 
