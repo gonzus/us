@@ -8,15 +8,15 @@ static Cell cell_nil    = { CELL_NONE, {0} };
 static Cell cell_bool_t = { CELL_INT , {1} };
 static Cell cell_bool_f = { CELL_INT , {0} };
 
-Cell* nil    = &cell_nil;
-Cell* bool_t = &cell_bool_t;
-Cell* bool_f = &cell_bool_f;
+const Cell* nil    = &cell_nil;
+const Cell* bool_t = &cell_bool_t;
+const Cell* bool_f = &cell_bool_f;
 
 static int get_str_len(const char* str, int len);
-static int cell_printer(const Cell* cell, int dump, char* buf);
+static int cell_printer(const Cell* cell, int debug, char* buf);
 static int cell_print_all(const Cell* cell, char* buf);
 
-void cell_destroy(Cell* cell)
+void cell_destroy(const Cell* cell)
 {
     switch (cell->tag) {
         case CELL_STRING:
@@ -24,7 +24,7 @@ void cell_destroy(Cell* cell)
             free((void*) cell->sval);
             break;
     }
-    free(cell);
+    free((void*) cell);
 }
 
 Cell* cell_create_int(long value)
@@ -114,7 +114,7 @@ Cell* cell_create_symbol(const char* value, int len)
     return cell;
 }
 
-Cell* cell_create_procedure(Cell* params, Cell* body, Env* env)
+Cell* cell_create_procedure(const Cell* params, const Cell* body, Env* env)
 {
     Cell* cell = (Cell*) malloc(sizeof(Cell));
     cell->tag = CELL_PROC;
@@ -138,7 +138,7 @@ Cell* cell_create_native(const char* label, NativeFunc* func)
 
 // TODO: these three functions (and maybe others) should do
 // some checking for their args...
-Cell* cell_cons(Cell* car, Cell* cdr)
+Cell* cell_cons(const Cell* car, const Cell* cdr)
 {
     Cell* cell = (Cell*) malloc(sizeof(Cell));
     cell->tag = CELL_CONS;
@@ -147,7 +147,7 @@ Cell* cell_cons(Cell* car, Cell* cdr)
     return cell;
 }
 
-Cell* cell_car(const Cell* cell)
+const Cell* cell_car(const Cell* cell)
 {
     if (cell->tag != CELL_CONS) {
         return 0;
@@ -155,7 +155,7 @@ Cell* cell_car(const Cell* cell)
     return cell->cons.car;
 }
 
-Cell* cell_cdr(const Cell* cell)
+const Cell* cell_cdr(const Cell* cell)
 {
     if (cell->tag != CELL_CONS) {
         return 0;
@@ -174,9 +174,9 @@ void cell_print(const Cell* cell, FILE* fp, int eol)
     fflush(fp);
 }
 
-const char* cell_dump(const Cell* cell, char* buf)
+const char* cell_dump(const Cell* cell, int debug, char* buf)
 {
-    cell_printer(cell, 1, buf);
+    cell_printer(cell, debug, buf);
     return buf;
 }
 
@@ -191,7 +191,7 @@ static int get_str_len(const char* str, int len)
     return len;
 }
 
-static int cell_printer(const Cell* cell, int dump, char* buf)
+static int cell_printer(const Cell* cell, int debug, char* buf)
 {
     static char* Tag[CELL_LAST] = {
         "NONE",
@@ -205,14 +205,14 @@ static int cell_printer(const Cell* cell, int dump, char* buf)
     };
     int pos = 0;
 
-    if (dump) {
+    if (debug) {
         pos += sprintf(buf + pos, "cell[");
     }
     if (!cell) {
         pos += sprintf(buf + pos, "NULL");
     }
     else {
-        if (dump) {
+        if (debug) {
             const char* str = "???";
             if (cell->tag < CELL_LAST) {
                 str = Tag[cell->tag];
@@ -231,7 +231,7 @@ static int cell_printer(const Cell* cell, int dump, char* buf)
             pos += sprintf(buf + pos, ")");
         }
     }
-    if (dump) {
+    if (debug) {
         pos += sprintf(buf + pos, "]");
     }
     return pos;

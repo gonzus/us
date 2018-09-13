@@ -207,7 +207,7 @@ static int token(Parser* parser, int token)
         LOG(DEBUG, ("%-15.15s", Token[token]));
     }
 
-    Cell* cell = 0;
+    const Cell* cell = 0;
     switch (token) {
         case TOKEN_INT:
             cell = cell_create_int_from_string(tok, len);
@@ -259,19 +259,19 @@ static int token(Parser* parser, int token)
 
     Expression* exp = &parser->exp[parser->level];
     if (parser->level == 0) {
-        exp->frst = cell;
+        exp->frst = (Cell*) cell;
         exp->last = 0;
         return 0;
     }
 
-    cell = cell_cons(cell, nil);
+    Cell* new_cell = cell_cons(cell, nil);
     if (!exp->frst) {
-        exp->frst = cell;
+        exp->frst = new_cell;
     }
     if (exp->last) {
-        exp->last->cons.cdr = cell;
+        exp->last->cons.cdr = new_cell;
     }
-    exp->last = cell;
+    exp->last = new_cell;
 
     return 0;
 }

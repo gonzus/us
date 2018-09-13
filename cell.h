@@ -31,17 +31,17 @@
 
 // A cons cell; guess what these members are...
 typedef struct Cons {
-    struct Cell* car;
-    struct Cell* cdr;
+    const struct Cell* car;
+    const struct Cell* cdr;
 } Cons;
 
 // Function prototype for native implementation of procs
-typedef struct Cell* (NativeFunc)(struct Cell* args);
+typedef const struct Cell* (NativeFunc)(const struct Cell* args);
 
 // A procedure
 typedef struct Procedure {
-    struct Cell* params;
-    struct Cell* body;
+    const struct Cell* params;
+    const struct Cell* body;
     struct Env* env;
 } Procedure;
 
@@ -65,12 +65,12 @@ typedef struct Cell {
 } Cell;
 
 // Let's just have a single value for nil, #t and #f
-extern Cell* nil;
-extern Cell* bool_t;
-extern Cell* bool_f;
+extern const Cell* nil;
+extern const Cell* bool_t;
+extern const Cell* bool_f;
 
 // Destroy a cell
-void cell_destroy(Cell* cell);
+void cell_destroy(const Cell* cell);
 
 // Create a cell with an integer value
 Cell* cell_create_int(long value);
@@ -87,21 +87,21 @@ Cell* cell_create_string(const char* value, int len);
 Cell* cell_create_symbol(const char* value, int len);
 
 // Create a cell with a procedure
-Cell* cell_create_procedure(Cell* params, Cell* body, struct Env* env);
+Cell* cell_create_procedure(const Cell* params, const Cell* body, struct Env* env);
 
 // Create a cell with a native function
 Cell* cell_create_native(const char* label, NativeFunc* func);
 
 // Implementation of cons
-Cell* cell_cons(Cell* car, Cell* cdr);
+Cell* cell_cons(const Cell* car, const Cell* cdr);
 
 // Implementations of car and cdr
-Cell* cell_car(const Cell* cell);
-Cell* cell_cdr(const Cell* cell);
+const Cell* cell_car(const Cell* cell);
+const Cell* cell_cdr(const Cell* cell);
 
 // Print contents of cell to given stream, optionally adding a \n
 void cell_print(const Cell* cell, FILE* fp, int eol);
 
-const char* cell_dump(const Cell* cell, char* buf);
+const char* cell_dump(const Cell* cell, int debug, char* buf);
 
 #endif

@@ -13,15 +13,15 @@ static char dumper[10*1024];
 #define CELL_LOOP(name, pos, args, body) \
     do { \
         LOG(DEBUG, ("Entering native %s", name)); \
-        for (Cell* c = args; c && c != nil; c = c->cons.cdr, ++pos) { \
-            Cell* arg = c->cons.car; \
-            LOG(DEBUG, ("Arg #%d %s", pos, cell_dump(arg, dumper))); \
+        for (const Cell* c = args; c && c != nil; c = c->cons.cdr, ++pos) { \
+            const Cell* arg = c->cons.car; \
+            LOG(DEBUG, ("Arg #%d %s", pos, cell_dump(arg, 1, dumper))); \
             do body while (0); \
         } \
         LOG(DEBUG, ("Leaving native %s", name)); \
     } while (0)
 
-Cell* func_add(Cell* args)
+const Cell* func_add(const Cell* args)
 {
     long iret = 0;
     double rret = 0.0;
@@ -43,7 +43,7 @@ Cell* func_add(Cell* args)
     return nil;
 }
 
-Cell* func_sub(Cell* args)
+const Cell* func_sub(const Cell* args)
 {
     long iret = 0;
     double rret = 0.0;
@@ -76,7 +76,7 @@ Cell* func_sub(Cell* args)
     return nil;
 }
 
-Cell* func_mul(Cell* args)
+const Cell* func_mul(const Cell* args)
 {
     long iret = 1;
     double rret = 1.0;
@@ -98,7 +98,7 @@ Cell* func_mul(Cell* args)
     return nil;
 }
 
-Cell* func_div(Cell* args)
+const Cell* func_div(const Cell* args)
 {
     long iret = 0;
     double rret = 0.0;
@@ -189,11 +189,11 @@ Cell* func_div(Cell* args)
     return nil;
 }
 
-Cell* func_eq(Cell* args)
+const Cell* func_eq(const Cell* args)
 {
     int ok = 1;
     int pos = 0;
-    Cell* mem = 0;
+    const Cell* mem = 0;
     CELL_LOOP("eq", pos, args, {
         if (!pos) { mem = arg; continue; }
         if (mem->tag != arg->tag) { ok = 0; break; }
@@ -212,11 +212,11 @@ Cell* func_eq(Cell* args)
     return ok ? bool_t : bool_f;
 }
 
-Cell* func_gt(Cell* args)
+const Cell* func_gt(const Cell* args)
 {
     int ok = 1;
     int pos = 0;
-    Cell* mem = 0;
+    const Cell* mem = 0;
     CELL_LOOP("gt", pos, args, {
         if (!pos) { mem = arg; continue; }
         if (mem->tag != arg->tag) { ok = 0; break; }
@@ -234,11 +234,11 @@ Cell* func_gt(Cell* args)
     return ok ? bool_t : bool_f;
 }
 
-Cell* func_lt(Cell* args)
+const Cell* func_lt(const Cell* args)
 {
     int ok = 1;
     int pos = 0;
-    Cell* mem = 0;
+    const Cell* mem = 0;
     CELL_LOOP("lt", pos, args, {
         if (!pos) { mem = arg; continue; }
         if (mem->tag != arg->tag) { ok = 0; break; }
@@ -256,10 +256,10 @@ Cell* func_lt(Cell* args)
     return ok ? bool_t : bool_f;
 }
 
-Cell* func_cons(Cell* args)
+const Cell* func_cons(const Cell* args)
 {
-    Cell* ret = nil;
-    Cell* mem[2];
+    const Cell* ret = nil;
+    const Cell* mem[2];
     int pos = 0;
     CELL_LOOP("cons", pos, args, {
         if (pos >= 2) break;
@@ -268,14 +268,14 @@ Cell* func_cons(Cell* args)
     if (pos == 2) {
         ret = cell_cons(mem[0], mem[1]);
     }
-    LOG(DEBUG, ("CONS: %s", cell_dump(ret, dumper)));
+    LOG(DEBUG, ("CONS: %s", cell_dump(ret, 1, dumper)));
     return ret;
 }
 
-Cell* func_car(Cell* args)
+const Cell* func_car(const Cell* args)
 {
-    Cell* ret = nil;
-    Cell* mem[1];
+    const Cell* ret = nil;
+    const Cell* mem[1];
     int pos = 0;
     CELL_LOOP("car", pos, args, {
         if (pos >= 1) break;
@@ -284,14 +284,14 @@ Cell* func_car(Cell* args)
     if (pos == 1) {
         ret = cell_car(mem[0]);
     }
-    LOG(DEBUG, ("CAR: %s", cell_dump(ret, dumper)));
+    LOG(DEBUG, ("CAR: %s", cell_dump(ret, 1, dumper)));
     return ret;
 }
 
-Cell* func_cdr(Cell* args)
+const Cell* func_cdr(const Cell* args)
 {
-    Cell* ret = nil;
-    Cell* mem[1];
+    const Cell* ret = nil;
+    const Cell* mem[1];
     int pos = 0;
     CELL_LOOP("cdr", pos, args, {
         if (pos >= 1) break;
@@ -300,15 +300,15 @@ Cell* func_cdr(Cell* args)
     if (pos == 1) {
         ret = cell_cdr(mem[0]);
     }
-    LOG(DEBUG, ("CDR: %s", cell_dump(ret, dumper)));
+    LOG(DEBUG, ("CDR: %s", cell_dump(ret, 1, dumper)));
     return ret;
 }
 
 
-Cell* func_begin(Cell* args)
+const Cell* func_begin(const Cell* args)
 {
     // we don't really do anything here, except remember the last value
-    Cell* ret = nil;
+    const Cell* ret = nil;
     int pos = 0;
     CELL_LOOP("begin", pos, args, {
         ret = arg;
