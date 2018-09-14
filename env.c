@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include "cell.h"
 #include "env.h"
 
 #if !defined(MEM_DEBUG)
@@ -43,13 +44,39 @@ Env* env_create(int size)
     return env;
 }
 
+Env* env_ref(Env* env)
+{
+    if (!env) {
+        return 0;
+    }
+    ++env->refcnt;
+    LOG(DEBUG, ("ENV: ref %p to %d", env, env->refcnt));
+    return env;
+}
+
+Env* env_unref(Env* env)
+{
+    if (!env) {
+        return 0;
+    }
+    --env->refcnt;
+    LOG(DEBUG, ("ENV: unref %p to %d", env, env->refcnt));
+    if (env->refcnt) {
+        return env;
+    }
+    LOG(DEBUG, ("ENV: unref %p deleting", env));
+    env_unref(env->parent);
+    env_destroy(env);
+    return 0;
+}
+
 void env_chain(Env* env, Env* parent)
 {
     if (!parent) {
         return;
     }
 
-    env->parent = parent;
+    env->parent = env_ref(parent);
     LOG(DEBUG, ("ENV: chained %p to parent %p", env, env->parent));
 }
 
@@ -82,6 +109,17 @@ Symbol* env_lookup(Env* env, const char* name, int create)
 
     // Return what we got, if anything
     return sym;
+}
+
+void env_dump(Env* env, FILE* fp)
+{
+    char dumper[10*1024];
+    fprintf(fp, "Env %p, %d buckets, parent %p\n", env, env->size, env->parent);
+    for (int j = 0; j < env->size; ++j) {
+        for (Symbol* sym = env->table[j]; sym != 0; sym = sym->next) {
+            fprintf(fp, "%5d: [%s] => [%s]\n", j, sym->name, cell_dump(sym->value, 1, dumper));
+        }
+    }
 }
 
 // I've had nice results with djb2 by Dan Bernstein.

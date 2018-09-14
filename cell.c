@@ -134,9 +134,6 @@ Cell* cell_create_native(const char* label, NativeFunc* func)
     return cell;
 }
 
-
-// TODO: these three functions (and maybe others) should do
-// some checking for their args...
 Cell* cell_cons(const Cell* car, const Cell* cdr)
 {
     Cell* cell = cell_build(CELL_CONS);

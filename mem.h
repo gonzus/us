@@ -13,12 +13,12 @@
     } while (0)
 #define MEM_ALLOC_SIZE(v, s) \
     do { \
-        v = (char*) mem_alloc(__FILE__, __LINE__, s, 1, 0); \
+        v = (char*) mem_alloc(__FILE__, __LINE__, 1, s, 0); \
     } while (0)
 #define MEM_ALLOC_STRDUP(v, s) \
     do { \
         int l = strlen(s) + 1; \
-        v = (char*) mem_alloc(__FILE__, __LINE__, l, 1, 0); \
+        v = (char*) mem_alloc(__FILE__, __LINE__, 1, l, 0); \
         memcpy(v, s, l); \
     } while (0)
 #define MEM_FREE_TYPE(v, c, t) \
@@ -28,7 +28,7 @@
     } while (0)
 #define MEM_FREE_SIZE(v, s) \
     do { \
-        mem_free(__FILE__, __LINE__, s, 1, (void*) v); \
+        mem_free(__FILE__, __LINE__, 1, s, (void*) v); \
         v = 0; \
     } while (0)
 

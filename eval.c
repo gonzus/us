@@ -127,6 +127,7 @@ static const Cell* cell_apply_proc(const Cell* cell, Env* env, const Cell* proc)
     // We create a new small-ish environment where we can bind all evaled args
     // in fresh slots for the params (see *COMMENT* below)
     Env* local = env_create(pos + 1);
+    env_ref(local);
     LOG(DEBUG, ("EVAL: proc on %s", cell_dump(cell, 1, dumper)));
     for (p = proc->pval.params, a = cell->cons.cdr, pos= 0;
          p && p != nil && a && a != nil;

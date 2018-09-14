@@ -46,5 +46,6 @@ static void mem_check_and_register(void)
 static void mem_print_final_stats(void)
 {
     long delta = mem_total_alloc - mem_total_free;
-    fprintf(stderr, "MEM %s %ld %ld\n", delta ? "BAD" : "OK", mem_total_alloc, mem_total_free);
+    fprintf(stderr, "MEM %s %ld %ld %ld\n",
+            delta ? "BAD" : "OK", mem_total_alloc, mem_total_free, delta);
 }

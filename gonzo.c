@@ -5,6 +5,9 @@
 #include "env.h"
 #include "us.h"
 
+// #define LOG_LEVEL LOG_LEVEL_DEBUG
+#include "log.h"
+
 static int test_cell(const char* label, const Cell* cell, const char* expected)
 {
     char dumper[10*1024];
@@ -125,8 +128,11 @@ static void test_lists(void)
 
 static void test_symbol(void)
 {
+    Env* parent = 0;
+    Env* child = 0;
     do {
-        Env* parent = env_create(0);
+        parent = env_create(0);
+        env_ref(parent);
         if (parent) {
             printf("ok symbol created parent env\n");
         }
@@ -167,7 +173,8 @@ static void test_symbol(void)
             break;
         }
 
-        Env* child = env_create(0);
+        child = env_create(0);
+        env_ref(child);
         if (child) {
             printf("ok symbol created child env\n");
         }
@@ -195,6 +202,10 @@ static void test_symbol(void)
             break;
         }
     } while (0);
+    env_dump(child, stdout);
+    env_dump(parent, stdout);
+    env_unref(child);
+    env_unref(parent);
 }
 
 static void test_parser(void)

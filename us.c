@@ -34,7 +34,7 @@ US* us_create(void) {
 void us_destroy(US* us)
 {
     parser_destroy(us->parser);
-    env_destroy(us->env);
+    env_unref(us->env);
     LOG(DEBUG, ("US: destroyed"));
     MEM_FREE_TYPE(us, 1, US);
 }
@@ -107,6 +107,7 @@ static Env* make_global_env(void)
         { "begin"   , func_begin },
     };
     Env* env = env_create(0);
+    env_ref(env);
     int n = sizeof(data) / sizeof(data[0]);
     for (int j = 0; j < n; ++j) {
         const char* name = data[j].name;

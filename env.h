@@ -1,6 +1,8 @@
 #ifndef ENV_H_
 #define ENV_H_
 
+#include <stdio.h>
+
 // An environment is a hash table that stores associations of name => value.
 // It also can have a parent environment.
 // When names hash to the same bucket, use a singly linked list.
@@ -14,10 +16,14 @@ typedef struct Symbol {
 
 // The environment itself:
 typedef struct Env {
-    Symbol** table;     // Hash table buckets
-    int size;           // Size for hash table
-    struct Env* parent; // Pointer to (possible) parent environment
+    Symbol** table;     // hash table buckets
+    int size;           // size for hash table
+    struct Env* parent; // pointer to (possible) parent environment
+    int refcnt;         // reference count
 } Env;
+
+Env* env_ref(Env* env);
+Env* env_unref(Env* env);
 
 // Destroy an environment
 void env_destroy(Env* env);
@@ -33,5 +39,8 @@ void env_chain(Env* env, Env* parent);
 // If not found anywhere and create is true, create new entry.
 // Return the Symbol (possibly empty) associated with this name.
 Symbol* env_lookup(Env* env, const char* name, int create);
+
+// Dump environmnet
+void env_dump(Env* env, FILE* fp);
 
 #endif
