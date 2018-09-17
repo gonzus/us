@@ -24,7 +24,9 @@ void env_destroy(Env* env)
             LOG(INFO, ("ENV: %5d: [%s] => [%s]\n", j, sym->name, cell_dump(sym->value, 1, dumper)));
             Symbol* tmp = sym;
             sym = sym->next;
-  //          cell_unref((Cell*) tmp->value);
+#if 0
+            cell_unref((Cell*) tmp->value);
+#endif
             MEM_FREE_SIZE(tmp->name, 0);
             MEM_FREE_TYPE(tmp, 1, Symbol);
         }

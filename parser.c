@@ -261,7 +261,7 @@ static int token(Parser* parser, int token)
             cell = parser->exp[parser->level].frst;
             --parser->level;
             if (!cell) {
-                cell = cell_ref(nil); // Special case: () => nil
+                cell = nil; // Special case: () => nil
             }
             break;
 

@@ -236,7 +236,7 @@ static const Cell* cell_set_value(const Cell* cell, Env* env, int create)
         }
     }
     if (!ret) {
-        ret = cell_ref(nil);
+        ret = nil;
     }
     return ret;
 }
