@@ -10,6 +10,7 @@ CFLAGS += -Wextra
 C_LIB_SRC = \
 	log.c \
 	mem.c \
+	arena.c \
 	cell.c \
 	env.c \
 	parser.c \
