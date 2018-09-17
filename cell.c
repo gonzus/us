@@ -8,6 +8,9 @@
 #endif
 #include "mem.h"
 
+// #define LOG_LEVEL LOG_LEVEL_DEBUG
+#include "log.h"
+
 // These are special values that have a single unique instance
 static Cell cell_nil    = { CELL_NONE, {0} };
 static Cell cell_bool_t = { CELL_INT , {1} };
@@ -25,10 +28,24 @@ static int cell_print_all(const Cell* cell, char* buf);
 
 void cell_destroy(Cell* cell)
 {
+    LOG(INFO, ("CELL: destroying %p tag %d", cell, cell->tag));
     switch (cell->tag) {
         case CELL_STRING:
         case CELL_SYMBOL:
             MEM_FREE_SIZE(cell->sval, 0);
+            break;
+        case CELL_CONS:
+#if 0
+            cell_unref(cell->cons.car);
+            cell_unref(cell->cons.cdr);
+#endif
+            break;
+        case CELL_PROC:
+#if 0
+            cell_unref(cell->pval.params);
+            cell_unref(cell->pval.body);
+            env_unref(cell->pval.env);
+#endif
             break;
     }
     MEM_FREE_TYPE(cell, 1, Cell);
@@ -38,6 +55,8 @@ Cell* cell_create_int(long value)
 {
     Cell* cell = cell_build(CELL_INT);
     cell->ival = value;
+    char dumper[10*1024];
+    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
@@ -65,6 +84,8 @@ Cell* cell_create_real(double value)
 {
     Cell* cell = cell_build(CELL_REAL);
     cell->rval = value;
+    char dumper[10*1024];
+    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
@@ -107,6 +128,8 @@ Cell* cell_create_string(const char* value, int len)
         memcpy(cell->sval, value, len);
     }
     cell->sval[len] = '\0';
+    char dumper[10*1024];
+    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
@@ -114,6 +137,8 @@ Cell* cell_create_symbol(const char* value, int len)
 {
     Cell* cell = cell_create_string(value, len);
     cell->tag = CELL_SYMBOL;
+    char dumper[10*1024];
+    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
@@ -123,6 +148,8 @@ Cell* cell_create_procedure(const Cell* params, const Cell* body, Env* env)
     cell->pval.params = params;
     cell->pval.body = body;
     cell->pval.env = env;  // I love you, lexical binding
+    char dumper[10*1024];
+    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
@@ -131,6 +158,8 @@ Cell* cell_create_native(const char* label, NativeFunc* func)
     Cell* cell = cell_build(CELL_NATIVE);
     cell->nval.label = label;
     cell->nval.func = func;
+    char dumper[10*1024];
+    LOG(DEBUG, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
@@ -139,6 +168,8 @@ Cell* cell_cons(const Cell* car, const Cell* cdr)
     Cell* cell = cell_build(CELL_CONS);
     cell->cons.car = car;
     cell->cons.cdr = cdr;
+    char dumper[10*1024];
+    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 

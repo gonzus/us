@@ -53,14 +53,14 @@ typedef struct Native {
 
 // Finally, definition of a cell
 typedef struct Cell {
-    unsigned char tag;
+    unsigned char tag;  // type of cell
     union {
-        long ival;
-        double rval;
-        char* sval;
-        Cons cons;
-        Procedure pval;
-        Native nval;
+        long ival;      // an integer value
+        double rval;    // a real value
+        char* sval;     // a string value (string or symbol)
+        Cons cons;      // a cons cell with car and cdr
+        Procedure pval; // an interpreted (scheme) function
+        Native nval;    // a native (C) function
     };
 } Cell;
 

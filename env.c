@@ -13,16 +13,18 @@
 
 #define ENV_DEFAULT_SIZE 1021
 
+static char dumper[10*1024];
 static unsigned long hash(const char* str);
 
 void env_destroy(Env* env)
 {
-    LOG(DEBUG, ("ENV: destroying %p, %d buckets, parent %p", env, env->size, env->parent));
+    LOG(INFO, ("ENV: destroying %p, %d buckets, parent %p", env, env->size, env->parent));
     for (int j = 0; j < env->size; ++j) {
-        Symbol* tmp = 0;
         for (Symbol* sym = env->table[j]; sym != 0; ) {
-            tmp = sym;
+            LOG(INFO, ("ENV: %5d: [%s] => [%s]\n", j, sym->name, cell_dump(sym->value, 1, dumper)));
+            Symbol* tmp = sym;
             sym = sym->next;
+  //          cell_unref((Cell*) tmp->value);
             MEM_FREE_SIZE(tmp->name, 0);
             MEM_FREE_TYPE(tmp, 1, Symbol);
         }
@@ -40,7 +42,7 @@ Env* env_create(int size)
     MEM_ALLOC_TYPE(env, 1, Env);
     env->size = size <= 0 ? ENV_DEFAULT_SIZE : size;
     MEM_ALLOC_TYPE(env->table, env->size, Symbol*);
-    LOG(DEBUG, ("ENV: created %p, %d buckets", env, env->size));
+    LOG(INFO, ("ENV: created %p, %d buckets", env, env->size));
     return env;
 }
 
@@ -105,6 +107,7 @@ Symbol* env_lookup(Env* env, const char* name, int create)
         MEM_ALLOC_STRDUP(sym->name, name);
         sym->next = env->table[h];
         env->table[h] = sym;
+        LOG(INFO, ("Created sym [%s]", name));
     }
 
     // Return what we got, if anything
@@ -113,7 +116,6 @@ Symbol* env_lookup(Env* env, const char* name, int create)
 
 void env_dump(Env* env, FILE* fp)
 {
-    char dumper[10*1024];
     fprintf(fp, "Env %p, %d buckets, parent %p\n", env, env->size, env->parent);
     for (int j = 0; j < env->size; ++j) {
         for (Symbol* sym = env->table[j]; sym != 0; sym = sym->next) {

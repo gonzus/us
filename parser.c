@@ -59,6 +59,8 @@ Parser* parser_create(int depth)
 
 void parser_destroy(Parser* parser)
 {
+    LOG(INFO, ("destroying parser"));
+    parser_reset(parser, 0);
     MEM_FREE_TYPE(parser->exp, parser->depth, Expression);
     MEM_FREE_TYPE(parser, 1, Parser);
 }
@@ -66,7 +68,7 @@ void parser_destroy(Parser* parser)
 void parser_reset(Parser* parser, const char* str)
 {
     parser->level = 0;
-    parser->exp[0].frst = parser->exp[0].last = 0;
+    PARSER_EXP_RESET(parser->exp[0]);
     parser->state = STATE_NORMAL;
     parser->str = str;
     parser->pos = 0;
@@ -75,7 +77,9 @@ void parser_reset(Parser* parser, const char* str)
 
 Cell* parser_result(Parser* parser)
 {
-    return parser->exp[0].frst;
+    Cell* cell = parser->exp[0].frst;
+    LOG(INFO, ("Cell %p ref 1", cell));
+    return cell;
 }
 
 void parser_parse(Parser* parser, const char* str)
@@ -172,7 +176,7 @@ void parser_parse(Parser* parser, const char* str)
     }
 }
 
-#if LOG_LEVEL <= LOG_LEVEL_DEBUG
+#if LOG_LEVEL <= LOG_LEVEL_INFO
 static const char* State[STATE_LAST] = {
     "STATE_NORMAL",
     "STATE_INT",
@@ -216,10 +220,10 @@ static int token(Parser* parser, int token)
     }
 
     if (len > 0) {
-        LOG(DEBUG, ("%-15.15s: [%*.*s] (%d)", Token[token], len, len, tok, len));
+        LOG(INFO, ("%-15.15s: [%*.*s] (%d)", Token[token], len, len, tok, len));
     }
     else {
-        LOG(DEBUG, ("%-15.15s", Token[token]));
+        LOG(INFO, ("%-15.15s", Token[token]));
     }
 
     const Cell* cell = 0;
@@ -250,15 +254,14 @@ static int token(Parser* parser, int token)
 
         case TOKEN_LPAREN:
             ++parser->level;
-            parser->exp[parser->level].frst = 0;
-            parser->exp[parser->level].last = 0;
+            PARSER_EXP_RESET(parser->exp[parser->level]);
             break;
 
         case TOKEN_RPAREN:
             cell = parser->exp[parser->level].frst;
             --parser->level;
             if (!cell) {
-                cell = nil; // Special case: () => nil
+                cell = cell_ref(nil); // Special case: () => nil
             }
             break;
 
@@ -271,19 +274,15 @@ static int token(Parser* parser, int token)
 
     Expression* exp = &parser->exp[parser->level];
     if (parser->level == 0) {
-        exp->frst = (Cell*) cell;
-        exp->last = 0;
+        LOG(INFO, ("PARSE: storing level zero"));
+        PARSER_EXP_RESET(*exp);
+        exp->frst = cell;
         return 0;
     }
 
-    Cell* cons = cell_cons(cell, nil);
-    if (!exp->frst) {
-        exp->frst = cons;
-    }
-    if (exp->last) {
-        exp->last->cons.cdr = cons;
-    }
-    exp->last = cons;
+    Cell* c = cell_cons(cell, nil);
+    LOG(INFO, ("PARSER: wrapped cell in cons"));
+    PARSER_EXP_APPEND(exp, c);
 
     return 0;
 }

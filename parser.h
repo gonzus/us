@@ -3,6 +3,22 @@
 
 // Hand-coded parser for a lisp-like language
 
+#define PARSER_EXP_RESET(e) \
+    do { \
+        (e).frst = 0; (e).last = 0; \
+    } while (0)
+
+#define PARSER_EXP_APPEND(e, c) \
+    do { \
+        Cell* x = c; \
+        if (!((e)->frst)) (e)->frst = x; \
+        if ((e)->last) { \
+            (e)->last->cons.cdr = x; \
+            LOG(INFO, ("APPENDED")); \
+        } \
+        (e)->last = x; \
+    } while (0)
+
 typedef struct Expression {
     struct Cell* frst;
     struct Cell* last;

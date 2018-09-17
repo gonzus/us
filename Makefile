@@ -1,7 +1,7 @@
 first: all
 
 # CFLAGS += -DMEM_DEBUG=0
-# CFLAGS += -DMEM_DEBUG=1
+CFLAGS += -DMEM_DEBUG=1
 CFLAGS += -g
 CFLAGS += -I.
 CFLAGS += -Wall

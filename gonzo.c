@@ -45,7 +45,8 @@ static void test_strings(void)
         const char* value = data[j].value;
         char expected[1024];
         sprintf(expected, "\"%s\"", value);
-        test_cell("string", cell_create_string(value, 0), expected);
+        Cell* c = cell_create_string(value, 0);
+        test_cell("string", c, expected);
     }
 }
 
@@ -67,7 +68,8 @@ static void test_integers(void)
         long value = data[j].value;
         char expected[1024];
         sprintf(expected, "%ld", value);
-        test_cell("int", cell_create_int(value), expected);
+        Cell* c = cell_create_int(value);
+        test_cell("int", c, expected);
     }
 }
 
@@ -90,7 +92,8 @@ static void test_reals(void)
         double value = data[j].value;
         char expected[1024];
         sprintf(expected, "%lf", value);
-        test_cell("real", cell_create_real(value), expected);
+        Cell* c = cell_create_real(value);
+        test_cell("real", c, expected);
     }
 }
 
@@ -218,6 +221,14 @@ static void test_parser(void)
         { " 11 ", "11" },
         { " -3.1415 ", "-3.141500" },
         {
+            "(2 3)",
+            "(2 3)"
+        },
+        {
+            " ( (2 3) ) ",
+            "((2 3))"
+        },
+        {
             " ( 1\"hi\"2 3.3\"ho\"4.4 (2 3)\"hu\"(6 7) ) ",
             "(1 \"hi\" 2 3.300000 \"ho\" 4.400000 (2 3) \"hu\" (6 7))"
         },
@@ -261,7 +272,9 @@ static void test_parser(void)
         const char* code = data[j].code;
         const char* expected = data[j].expected;
         parser_parse(parser, code);
-        test_cell("parse", parser_result(parser), expected);
+        Cell* c = parser_result(parser);
+        LOG(INFO, ("Cell %p ref 2", c));
+        test_cell("parse", c, expected);
     }
     parser_destroy(parser);
 }
@@ -362,6 +375,8 @@ static void test_eval_simple(void)
         { "#f", " (= \"Bilbo\" \"Frodo\") " },
         { "#t", " (= + +) " },
         { "#f", " (= + *) " },
+        { "11", " 11 " },
+        { "2", " (if #f 1 2)" },
         { "\"Sane\"", " (if (= 7 11) \"Crazy!\" \"Sane\")  " },
         { "7", " (if (= \"abc\" \"abc\") (+ 3 4) (- 5 6)) " },
         { "\"Positive!\"", " (if (> 13 0)  \"Positive!\" \"Negative\")  " },
@@ -375,7 +390,8 @@ static void test_eval_simple(void)
     for (int j = 0; j < n; ++j) {
         const char* code = data[j].code;
         const char* expected = data[j].expected;
-        test_cell("eval_simple", us_eval_str(us, code), expected);
+        Cell* c = us_eval_str(us, code);
+        test_cell("eval_simple", c, expected);
     }
     us_destroy(us);
 }
@@ -386,11 +402,16 @@ static void test_eval_complex(void)
         const char* expected;
         const char* code;
     } data[] = {
+#if 0
         { "()", "(define nil (quote ()))" },
         { "<*CODE*>", "(define null? (lambda (L) (= L nil)))" },
         { "<*CODE*>", "(define length (lambda (L) (if (= L nil) 0 (+ 1 (length (cdr L))))))" },
         { "<*CODE*>", "(define empty? (lambda (L) (= 0 (length L))))" },
         { "(1 2 3 4)", "(define L (quote (1 2 3 4)))" },
+#endif
+        { "<*CODE*>", "(define baz (lambda (x) x))" },
+        { "4", "(baz 4)" },
+#if 0
         { "4", "(length L)" },
         { "#f", "(empty? L)" },
 
@@ -450,6 +471,7 @@ static void test_eval_complex(void)
         { "180.000000", " (acct2 -20.0) " },
         { "70.000000", " (acct1 -10.0) " },
         { "160.000000", " (acct2 -20.0) " },
+#endif
     };
 
     US* us = us_create();
@@ -457,7 +479,8 @@ static void test_eval_complex(void)
     for (int j = 0; j < n; ++j) {
         const char* code = data[j].code;
         const char* expected = data[j].expected;
-        test_cell("eval_complex", us_eval_str(us, code), expected);
+        Cell* c = us_eval_str(us, code);
+        test_cell("eval_complex", c, expected);
     }
     us_destroy(us);
 }
@@ -467,6 +490,7 @@ int main(int argc, char* argv[])
     (void) argc;
     (void) argv;
 
+#if 0
     test_globals();
     test_strings();
     test_integers();
@@ -475,7 +499,10 @@ int main(int argc, char* argv[])
     test_symbol();
     test_parser();
     test_eval_simple();
+#endif
     test_eval_complex();
+#if 0
+#endif
 
     return 0;
 }

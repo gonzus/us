@@ -43,6 +43,7 @@ const Cell* us_eval_str(US* us, const char* code)
 {
     parser_parse(us->parser, code);
     Cell* c = parser_result(us->parser);
+    LOG(INFO, ("=== parsed ==="));
     if (!c) {
         LOG(WARNING, ("Could not eval code [%s]", code));
         return 0;
@@ -52,7 +53,12 @@ const Cell* us_eval_str(US* us, const char* code)
     cell_print(c, stdout, 1);
 #endif
 
-    const Cell* r = cell_eval(c, us->env);
+    const Cell* r = 0;
+
+#if 1
+    r = cell_eval(c, us->env);
+    LOG(INFO, ("=== evaled ==="));
+#endif
 
 #if 0
     printf("[%p] => ", r);
@@ -115,5 +121,6 @@ static Env* make_global_env(void)
         sym->value = cell_create_native(name, data[j].func);
         LOG(DEBUG, ("US: registered native handler for [%s]", name));
     }
+    LOG(INFO, ("US: registered all native handlers"));
     return env;
 }
