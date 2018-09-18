@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "us.h"
 #include "cell.h"
 #include "parser.h"
 
@@ -34,16 +35,16 @@
 #define TOKEN_LAST   7
 
 // Check and take action while parsing
-#define CHECK_STATE(p, s, t, n, b, c, d) \
+#define CHECK_STATE(u, p, s, t, n, b, c, d) \
     if ((p)->state == (s)) {                 /* check current state  */ \
-        if (t != TOKEN_NONE) token(p, t);    /* maybe emit token     */ \
+        if (t != TOKEN_NONE) token(u, p, t); /* maybe emit token     */ \
         (p)->state = n;                      /* switch to next state */ \
         if (d >= 0) (p)->beg = (p)->pos + d; /* maybe remember pos   */ \
         if (b) break;                        /* maybe break          */ \
         if (c) continue;                     /* maybe continue       */ \
     } \
 
-static int token(Parser* parser, int token);
+static int token(US* us, Parser* parser, int token);
 
 Parser* parser_create(int depth)
 {
@@ -82,94 +83,94 @@ Cell* parser_result(Parser* parser)
     return cell;
 }
 
-void parser_parse(Parser* parser, const char* str)
+void parser_parse(US* us, Parser* parser, const char* str)
 {
     // Our parser is written this way so that it is ready to be translated to a
     // much more efficient table lookup implementation.
     for (parser_reset(parser, str); 1; ++parser->pos) {
         if (str[parser->pos] == '\0') {
-            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_NORMAL, 1, 0, -1);
-            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_NORMAL, 1, 0, -1);
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_NORMAL, 1, 0, -1);
-            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_NORMAL, 1, 0, -1); // ERROR missing closing "
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_NORMAL, 1, 0, -1);
+            CHECK_STATE(us, parser, STATE_NORMAL, TOKEN_NONE  , STATE_NORMAL, 1, 0, -1);
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_INT   , STATE_NORMAL, 1, 0, -1);
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_REAL  , STATE_NORMAL, 1, 0, -1);
+            CHECK_STATE(us, parser, STATE_STRING, TOKEN_NONE  , STATE_NORMAL, 1, 0, -1); // ERROR missing closing "
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_NORMAL, 1, 0, -1);
             LOG(FATAL, ("unreachable code -- WTF?"));
         }
         if (str[parser->pos] == '"') {
-            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_STRING, 0, 1, +1);
-            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_STRING, 0, 1, +1);
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_STRING, 0, 1, +1);
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_STRING, 0, 1, +1);
-            CHECK_STATE(parser, STATE_STRING, TOKEN_STRING, STATE_NORMAL, 0, 1, +1);
+            CHECK_STATE(us, parser, STATE_NORMAL, TOKEN_NONE  , STATE_STRING, 0, 1, +1);
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_INT   , STATE_STRING, 0, 1, +1);
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_REAL  , STATE_STRING, 0, 1, +1);
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_STRING, 0, 1, +1);
+            CHECK_STATE(us, parser, STATE_STRING, TOKEN_STRING, STATE_NORMAL, 0, 1, +1);
             LOG(FATAL, ("unreachable code -- WTF?"));
         }
         if (str[parser->pos] == '(') {
-            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
-            CHECK_STATE(parser, STATE_NORMAL, TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_NORMAL, TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
 
-            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_INT   , 0, 0, -1); // 34( is two tokens
-            CHECK_STATE(parser, STATE_INT   , TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_INT   , STATE_INT   , 0, 0, -1); // 34( is two tokens
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
 
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_REAL  , 0, 0, -1); // 34.7( is two tokens
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_REAL  , STATE_REAL  , 0, 0, -1); // 34.7( is two tokens
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
 
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_SYMBOL, 0, 0, -1); // abc( is two tokens
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_SYMBOL, 0, 0, -1); // abc( is two tokens
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_LPAREN, STATE_NORMAL, 0, 1, -1);
             LOG(FATAL, ("unreachable code -- WTF?"));
         }
         if (str[parser->pos] == ')') {
-            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
-            CHECK_STATE(parser, STATE_NORMAL, TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_NORMAL, TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
 
-            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_INT   , 0, 0, -1); // 34) is two tokens
-            CHECK_STATE(parser, STATE_INT   , TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_INT   , STATE_INT   , 0, 0, -1); // 34) is two tokens
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
 
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_REAL  , 0, 0, -1); // 34.7) is two tokens
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_REAL  , STATE_REAL  , 0, 0, -1); // 34.7) is two tokens
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
 
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_SYMBOL, 0, 0, -1); // abc) is two tokens
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_SYMBOL, 0, 0, -1); // abc) is two tokens
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_RPAREN, STATE_NORMAL, 0, 1, -1);
             LOG(FATAL, ("unreachable code -- WTF?"));
         }
         if (str[parser->pos] == '+' ||
             str[parser->pos] == '-') {
-            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_INT   , 0, 1, +0);
-            CHECK_STATE(parser, STATE_INT   , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
-            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_NORMAL, TOKEN_NONE  , STATE_INT   , 0, 1, +0);
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
             LOG(FATAL, ("unreachable code -- WTF?"));
         }
         if (str[parser->pos] == '.') {
-            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_REAL  , 0, 1, +0);
-            CHECK_STATE(parser, STATE_INT   , TOKEN_NONE  , STATE_REAL  , 0, 1, -1);
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1); // 123.4. is a valid symbol
-            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_NORMAL, TOKEN_NONE  , STATE_REAL  , 0, 1, +0);
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_NONE  , STATE_REAL  , 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1); // 123.4. is a valid symbol
+            CHECK_STATE(us, parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
             LOG(FATAL, ("unreachable code -- WTF?"));
         }
         if (isspace(str[parser->pos])) {
-            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_NORMAL, 0, 1, -1);
-            CHECK_STATE(parser, STATE_INT   , TOKEN_INT   , STATE_NORMAL, 0, 1, -1);
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_REAL  , STATE_NORMAL, 0, 1, -1);
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_NORMAL, 0, 1, -1);
-            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_NORMAL, TOKEN_NONE  , STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_INT   , STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_REAL  , STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_SYMBOL, STATE_NORMAL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
             LOG(FATAL, ("unreachable code -- WTF?"));
         }
         if (isdigit(str[parser->pos])) {
-            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_INT   , 0, 1, +0);
-            CHECK_STATE(parser, STATE_INT   , TOKEN_NONE  , STATE_INT   , 0, 1, -1);
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_NONE  , STATE_REAL  , 0, 1, -1);
-            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_NORMAL, TOKEN_NONE  , STATE_INT   , 0, 1, +0);
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_NONE  , STATE_INT   , 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_NONE  , STATE_REAL  , 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
             LOG(FATAL, ("unreachable code -- WTF?"));
         }
         if (1) {
-            CHECK_STATE(parser, STATE_NORMAL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, +0);
-            CHECK_STATE(parser, STATE_INT   , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1); // 1/   is a valid symbol
-            CHECK_STATE(parser, STATE_REAL  , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1); // 1.4/ is a valid symbol
-            CHECK_STATE(parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
-            CHECK_STATE(parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_NORMAL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, +0);
+            CHECK_STATE(us, parser, STATE_INT   , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1); // 1/   is a valid symbol
+            CHECK_STATE(us, parser, STATE_REAL  , TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1); // 1.4/ is a valid symbol
+            CHECK_STATE(us, parser, STATE_STRING, TOKEN_NONE  , STATE_STRING, 0, 1, -1);
+            CHECK_STATE(us, parser, STATE_SYMBOL, TOKEN_NONE  , STATE_SYMBOL, 0, 1, -1);
             LOG(FATAL, ("unreachable code -- WTF?"));
         }
         LOG(FATAL, ("unreachable code -- WTF?"));
@@ -195,7 +196,7 @@ static const char* Token[TOKEN_LAST] = {
 };
 #endif
 
-static int token(Parser* parser, int token)
+static int token(US* us, Parser* parser, int token)
 {
     const char* tok = parser->str + parser->beg;;
     int len = 0;
@@ -229,15 +230,15 @@ static int token(Parser* parser, int token)
     const Cell* cell = 0;
     switch (token) {
         case TOKEN_INT:
-            cell = cell_create_int_from_string(tok, len);
+            cell = cell_create_int_from_string(us, tok, len);
             break;
 
         case TOKEN_REAL:
-            cell = cell_create_real_from_string(tok, len);
+            cell = cell_create_real_from_string(us, tok, len);
             break;
 
         case TOKEN_STRING:
-            cell = cell_create_string(tok, len);
+            cell = cell_create_string(us, tok, len);
             break;
 
         case TOKEN_SYMBOL:
@@ -249,7 +250,7 @@ static int token(Parser* parser, int token)
                 cell = bool_f; // Special case: #f
                 break;
             }
-            cell = cell_create_symbol(tok, len);
+            cell = cell_create_symbol(us, tok, len);
             break;
 
         case TOKEN_LPAREN:
@@ -280,7 +281,7 @@ static int token(Parser* parser, int token)
         return 0;
     }
 
-    Cell* c = cell_cons(cell, nil);
+    Cell* c = cell_cons(us, cell, nil);
     LOG(INFO, ("PARSER: wrapped cell in cons"));
     PARSER_EXP_APPEND(exp, c);
 

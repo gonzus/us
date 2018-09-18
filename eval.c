@@ -1,4 +1,5 @@
 #include <string.h>
+#include "us.h"
 #include "cell.h"
 #include "env.h"
 #include "parser.h"
@@ -19,15 +20,15 @@ static char dumper[10*1024];
 
 static const Cell* cell_symbol(const Cell* cell, Env* env);
 static const Cell* cell_quote(const Cell* cell);  // no need for env
-static const Cell* cell_apply(const Cell* cell, Env* env);
-static const Cell* cell_apply_proc(const Cell* cell, Env* env, const Cell* proc);
-static const Cell* cell_apply_native(const Cell* cell, Env* env, const Cell* proc);
-static const Cell* cell_set_value(const Cell* cell, Env* env, int create);
-static const Cell* cell_if(const Cell* cell, Env* env);
-static const Cell* cell_lambda(const Cell* cell, Env* env);
+static const Cell* cell_apply(US* us, const Cell* cell, Env* env);
+static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cell* proc);
+static const Cell* cell_apply_native(US* us, const Cell* cell, Env* env, const Cell* proc);
+static const Cell* cell_set_value(US* us, const Cell* cell, Env* env, int create);
+static const Cell* cell_if(US* us, const Cell* cell, Env* env);
+static const Cell* cell_lambda(US* us, const Cell* cell, Env* env);
 static int gather_args(const Cell* cell, int wanted, Cell* args[]);
 
-const Cell* cell_eval(const Cell* cell, Env* env)
+const Cell* cell_eval(US* us, const struct Cell* cell, struct Env* env)
 {
     if (cell->tag == CELL_SYMBOL) {
         // a symbol => get it from the environment
@@ -52,36 +53,37 @@ const Cell* cell_eval(const Cell* cell, Env* env)
         }
         if (strcmp(car->sval, EVAL_DEFINE) == 0) {
             // a define special form
-            return cell_set_value(cell, env, 1);
+            return cell_set_value(us, cell, env, 1);
         }
         if (strcmp(car->sval, EVAL_SET) == 0) {
             // a set! special form
-            return cell_set_value(cell, env, 0);
+            return cell_set_value(us, cell, env, 0);
         }
         if (strcmp(car->sval, EVAL_IF) == 0) {
             // an if special form
-            return cell_if(cell, env);
+            return cell_if(us, cell, env);
         }
         if (strcmp(car->sval, EVAL_LAMBDA) == 0 ) {
             // a lambda special form
-            return cell_lambda(cell, env);
+            return cell_lambda(us, cell, env);
         }
     }
 
     // treat the cell as a function invocation
-    return cell_apply(cell, env);
+    return cell_apply(us, cell, env);
 }
 
 // Eval a symbol cell
 static const Cell* cell_symbol(const Cell* cell, Env* env)
 {
     const Cell* ret = nil;
+    LOG(INFO, ("EVAL: looking up symbol [%s] in env %p", cell->sval, env));
     Symbol* sym = env_lookup(env, cell->sval, 0);
     if (sym) {
         ret = sym->value;
     }
-    return ret;
     LOG(INFO, ("EVAL: looked up symbol [%s] in env %p => %s", cell->sval, env, cell_dump(ret, 1, dumper)));
+    return ret;
 }
 
 // Execute a quote special form
@@ -97,18 +99,18 @@ static const Cell* cell_quote(const Cell* cell)
 }
 
 // Apply a function (car) to all its arguments (cdr)
-static const Cell* cell_apply(const Cell* cell, Env* env)
+static const Cell* cell_apply(US* us, const Cell* cell, Env* env)
 {
     Cell* ret = 0;
-    const Cell* proc = cell_eval(cell->cons.car, env);
+    const Cell* proc = cell_eval(us, cell->cons.car, env);
     if (proc) {
         switch (proc->tag) {
             case CELL_PROC:
-                ret = cell_apply_proc(cell, env, proc);
+                ret = cell_apply_proc(us, cell, env, proc);
                 break;
 
             case CELL_NATIVE:
-                ret = cell_apply_native(cell, env, proc);
+                ret = cell_apply_native(us, cell, env, proc);
                 break;
         }
     }
@@ -118,7 +120,7 @@ static const Cell* cell_apply(const Cell* cell, Env* env)
     return ret;
 }
 
-static const Cell* cell_apply_proc(const Cell* cell, Env* env, const Cell* proc)
+static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cell* proc)
 {
     int pos = 0;
     const Cell* p = 0; // pointer to current parameter
@@ -133,25 +135,29 @@ static const Cell* cell_apply_proc(const Cell* cell, Env* env, const Cell* proc)
 
     // We create a new small-ish environment where we can bind all evaled args
     // in fresh slots for the params (see *COMMENT* below)
-    Env* local = env_ref(env_create(pos + 1));
-    LOG(INFO, ("EVAL: proc on %s", cell_dump(cell, 1, dumper)));
+    Env* local = env_create(pos + 1);
+    LOG(INFO, ("EVAL: proc with %d args: %s", pos, cell_dump(proc, 1, dumper)));
+    LOG(INFO, ("EVAL: proc on: %s", cell_dump(cell, 1, dumper)));
     int ok = 1;
     for (p = proc->pval.params, a = cell->cons.cdr, pos= 0;
          p && p != nil && a && a != nil;
          p = p->cons.cdr, a = a->cons.cdr, ++pos) {
+        LOG(INFO, ("So far, params is %s", cell_dump(p, 1, dumper)));
         const Cell* par = p->cons.car;
         if (!par) {
             LOG(ERROR, ("Could not get parameter #%d", pos));
             ok = 0;
             break;
         }
+        LOG(INFO, ("Got parameter #%d: %s", pos, cell_dump(par, 1, dumper)));
         // we eval each arg in the caller's environment
-        const Cell* arg = cell_eval(a->cons.car, env);
+        const Cell* arg = cell_eval(us, a->cons.car, env);
         if (!arg) {
             LOG(ERROR, ("Could not evaluate arg #%d [%s]", pos, par->sval));
             ok = 0;
             break;
         }
+        LOG(INFO, ("Evaluated arg #%d [%s]", pos, par->sval));
         // now we create a symbol with the correct name=value association
         Symbol* sym = env_lookup(local, par->sval, 1);
         if (!sym) {
@@ -168,7 +174,7 @@ static const Cell* cell_apply_proc(const Cell* cell, Env* env, const Cell* proc)
 
     if (ok) {
         // finally eval the proc body in this newly created env
-        ret = cell_eval(proc->pval.body, local);
+        ret = cell_eval(us, proc->pval.body, local);
 
         // We cannot destroy our local env because it may have been "captured" and
         // will be returned to the caller; this  happens when returning a lambda as
@@ -181,7 +187,7 @@ static const Cell* cell_apply_proc(const Cell* cell, Env* env, const Cell* proc)
     return ret;
 }
 
-static const Cell* cell_apply_native(const Cell* cell, Env* env, const Cell* proc)
+static const Cell* cell_apply_native(US* us, const Cell* cell, Env* env, const Cell* proc)
 {
     // We create a new list with all evaled args
     const Cell* a = 0; // pointer to current argument
@@ -195,20 +201,21 @@ static const Cell* cell_apply_native(const Cell* cell, Env* env, const Cell* pro
          a && a != nil;
          a = a->cons.cdr, ++pos) {
         // we eval each arg in the caller's environment
-        const Cell* arg = cell_eval(a->cons.car, env);
+        const Cell* arg = cell_eval(us, a->cons.car, env);
         if (!arg) {
             LOG(ERROR, ("Native, could not evaluate arg #%d for [%s]", pos, proc->nval.label));
             ok = 0;
             break;
         }
-        Cell* cons = cell_cons(arg, nil);
+        Cell* cons = cell_cons(us, arg, nil);
         PARSER_EXP_APPEND(&exp, cons);
-        LOG(DEBUG, ("Native, arg #%d for [%s] is %s", pos, proc->nval.label, cell_dump(arg, 1, dumper)));
+        LOG(INFO, ("Native, arg #%d for [%s] is %s", pos, proc->nval.label, cell_dump(arg, 1, dumper)));
     }
 
     // finally eval the proc function with its args
     if (ok) {
-        ret = proc->nval.func(exp.frst);
+        LOG(INFO, ("Native, calling with args %s", cell_dump(exp.frst, 1, dumper)));
+        ret = proc->nval.func(us, exp.frst);
     }
     if (!ret) {
         ret = nil;
@@ -219,20 +226,20 @@ static const Cell* cell_apply_native(const Cell* cell, Env* env, const Cell* pro
 
 // Set a value in the given environment;
 // optionally create it if it doesn't exist.
-static const Cell* cell_set_value(const Cell* cell, Env* env, int create)
+static const Cell* cell_set_value(US* us, const Cell* cell, Env* env, int create)
 {
     Cell* ret = 0;
     Cell* args[3];
     if (gather_args(cell, 3, args)) {
-        LOG(DEBUG, ("EVAL: %s value for [%s] to %s", create ? "define" : "set", args[1]->sval, cell_dump(args[2], 1, dumper)));
+        LOG(INFO, ("EVAL: %s value for [%s] to %s", create ? "define" : "set", args[1]->sval, cell_dump(args[2], 1, dumper)));
         Symbol* sym = env_lookup(env, args[1]->sval, create);
         if (!sym) {
             LOG(ERROR, ("EVAL: symbol [%s] not found", args[1]->sval));
         }
         else {
-            ret = cell_eval(args[2], env);
+            ret = cell_eval(us, args[2], env);
             sym->value = ret;
-            LOG(DEBUG, ("Setting value [%s] to %s", args[1]->sval, cell_dump(ret, 1, dumper)));
+            LOG(INFO, ("Setting value [%s] to %s", args[1]->sval, cell_dump(ret, 1, dumper)));
         }
     }
     if (!ret) {
@@ -242,7 +249,7 @@ static const Cell* cell_set_value(const Cell* cell, Env* env, int create)
 }
 
 // Execute an if special form
-static const Cell* cell_if(const Cell* cell, Env* env)
+static const Cell* cell_if(US* us, const Cell* cell, Env* env)
 {
     Cell* ret = 0;
     Cell* args[4];
@@ -251,8 +258,8 @@ static const Cell* cell_if(const Cell* cell, Env* env)
         LOG(DEBUG, ("EVAL: if ? %s", cell_dump(args[2], 1, dumper)));
         LOG(DEBUG, ("EVAL: if : %s", cell_dump(args[3], 1, dumper)));
 
-        const Cell* tst = cell_eval(args[1], env);
-        ret = cell_eval(tst == bool_t ? args[2] : args[3], env);
+        const Cell* tst = cell_eval(us, args[1], env);
+        ret = cell_eval(us, tst == bool_t ? args[2] : args[3], env);
         LOG(DEBUG, ("EVAL: if => %s", cell_dump(ret, 1, dumper)));
     }
     if (!ret) {
@@ -262,7 +269,7 @@ static const Cell* cell_if(const Cell* cell, Env* env)
 }
 
 // Execute a lambda special form
-static const Cell* cell_lambda(const Cell* cell, Env* env)
+static const Cell* cell_lambda(US* us, const Cell* cell, Env* env)
 {
     Cell* ret = 0;
     Cell* args[3];
@@ -273,7 +280,7 @@ static const Cell* cell_lambda(const Cell* cell, Env* env)
         // This is where lexical scope happens: we keep the environment that was
         // extant at the time of the lambda *creation*, as opposed to its *usage*
         // (the latter would be dynamic scope).
-        ret = cell_create_procedure(args[1], args[2], env);
+        ret = cell_create_procedure(us, args[1], args[2], env);
     }
     if (!ret) {
         ret = nil;

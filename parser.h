@@ -19,6 +19,8 @@
         (e)->last = x; \
     } while (0)
 
+struct US;
+
 typedef struct Expression {
     struct Cell* frst;
     struct Cell* last;
@@ -38,7 +40,7 @@ typedef struct Parser {
 Parser* parser_create(int depth);
 void parser_destroy(Parser* parser);
 
-void parser_parse(Parser* parser, const char* str);
+void parser_parse(struct US* us, Parser* parser, const char* str);
 void parser_reset(Parser* parser, const char* str);
 struct Cell* parser_result(Parser* parser);
 

@@ -1,5 +1,6 @@
 // #include <stdio.h>
 #include <string.h>
+#include "us.h"
 #include "cell.h"
 #include "env.h"
 #include "native.h"
@@ -21,7 +22,7 @@ static char dumper[10*1024];
         LOG(DEBUG, ("Leaving native %s", name)); \
     } while (0)
 
-const Cell* func_add(const Cell* args)
+const Cell* func_add(US* us, const Cell* args)
 {
     long iret = 0;
     double rret = 0.0;
@@ -38,12 +39,12 @@ const Cell* func_add(const Cell* args)
         if (!ok) break;
     });
     if (!ok) return nil;
-    if (rsaw) return cell_create_real(rret + iret);
-    if (isaw) return cell_create_int(iret);
+    if (rsaw) return cell_create_real(us, rret + iret);
+    if (isaw) return cell_create_int(us, iret);
     return nil;
 }
 
-const Cell* func_sub(const Cell* args)
+const Cell* func_sub(US* us, const Cell* args)
 {
     long iret = 0;
     double rret = 0.0;
@@ -71,12 +72,12 @@ const Cell* func_sub(const Cell* args)
     if (!ok) return nil;
     if (pos == 0) return nil;
     if (pos == 1) { iret = -iret; rret = -rret; }
-    if (rsaw) return cell_create_real(rret + iret);
-    if (isaw) return cell_create_int(iret);
+    if (rsaw) return cell_create_real(us, rret + iret);
+    if (isaw) return cell_create_int(us, iret);
     return nil;
 }
 
-const Cell* func_mul(const Cell* args)
+const Cell* func_mul(US* us, const Cell* args)
 {
     long iret = 1;
     double rret = 1.0;
@@ -93,12 +94,12 @@ const Cell* func_mul(const Cell* args)
         if (!ok) break;
     });
     if (!ok) return nil;
-    if (rsaw) return cell_create_real(rret * iret);
-    if (isaw) return cell_create_int(iret);
+    if (rsaw) return cell_create_real(us, rret * iret);
+    if (isaw) return cell_create_int(us, iret);
     return nil;
 }
 
-const Cell* func_div(const Cell* args)
+const Cell* func_div(US* us, const Cell* args)
 {
     long iret = 0;
     double rret = 0.0;
@@ -184,12 +185,12 @@ const Cell* func_div(const Cell* args)
         }
     }
     if (!ok) return nil;
-    if (rsaw) return cell_create_real(rret);
-    if (isaw) return cell_create_int(iret);
+    if (rsaw) return cell_create_real(us, rret);
+    if (isaw) return cell_create_int(us, iret);
     return nil;
 }
 
-const Cell* func_eq(const Cell* args)
+const Cell* func_eq(US* us, const Cell* args)
 {
     int ok = 1;
     int pos = 0;
@@ -212,7 +213,7 @@ const Cell* func_eq(const Cell* args)
     return ok ? bool_t : bool_f;
 }
 
-const Cell* func_gt(const Cell* args)
+const Cell* func_gt(US* us, const Cell* args)
 {
     int ok = 1;
     int pos = 0;
@@ -234,7 +235,7 @@ const Cell* func_gt(const Cell* args)
     return ok ? bool_t : bool_f;
 }
 
-const Cell* func_lt(const Cell* args)
+const Cell* func_lt(US* us, const Cell* args)
 {
     int ok = 1;
     int pos = 0;
@@ -256,7 +257,7 @@ const Cell* func_lt(const Cell* args)
     return ok ? bool_t : bool_f;
 }
 
-const Cell* func_cons(const Cell* args)
+const Cell* func_cons(US* us, const Cell* args)
 {
     const Cell* ret = nil;
     const Cell* mem[2];
@@ -266,13 +267,13 @@ const Cell* func_cons(const Cell* args)
         mem[pos] = arg;
     });
     if (pos == 2) {
-        ret = cell_cons(mem[0], mem[1]);
+        ret = cell_cons(us, mem[0], mem[1]);
     }
     LOG(DEBUG, ("CONS: %s", cell_dump(ret, 1, dumper)));
     return ret;
 }
 
-const Cell* func_car(const Cell* args)
+const Cell* func_car(US* us, const Cell* args)
 {
     const Cell* ret = nil;
     const Cell* mem[1];
@@ -288,7 +289,7 @@ const Cell* func_car(const Cell* args)
     return ret;
 }
 
-const Cell* func_cdr(const Cell* args)
+const Cell* func_cdr(US* us, const Cell* args)
 {
     const Cell* ret = nil;
     const Cell* mem[1];
@@ -304,8 +305,7 @@ const Cell* func_cdr(const Cell* args)
     return ret;
 }
 
-
-const Cell* func_begin(const Cell* args)
+const Cell* func_begin(US* us, const Cell* args)
 {
     // we don't really do anything here, except remember the last value
     const Cell* ret = nil;

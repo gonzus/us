@@ -19,11 +19,7 @@ typedef struct Env {
     Symbol** table;     // hash table buckets
     int size;           // size for hash table
     struct Env* parent; // pointer to (possible) parent environment
-    int refcnt;         // reference count
 } Env;
-
-Env* env_ref(Env* env);
-Env* env_unref(Env* env);
 
 // Destroy an environment
 void env_destroy(Env* env);

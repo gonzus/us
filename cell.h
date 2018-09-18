@@ -1,20 +1,13 @@
 #ifndef CELL_H_
 #define CELL_H_
 
-// need this for FILE*
-#include <stdio.h>
+#include <stdio.h> // need this for FILE*
 
 // A Cell stores any possible value (integer, conses, others)
 // using a union.
-//
-// In particular, it supports values of type cons.
-//
-// WARNING: we are not doing any kind of memory management.
-// This thing leaks like a boat made of hay.
-// Need to decide wether we will use ref counting or GC.
 
 // Types of cell
-#define CELL_NONE   0  // Needed? Special value nil uses it
+#define CELL_NONE   0  // Special value, nil uses it
 #define CELL_INT    1  // Integers => long
 #define CELL_REAL   2  // Reals => double
 #define CELL_STRING 3  // Strings
@@ -29,14 +22,16 @@
 #define CELL_STR_BOOL_T "#t"
 #define CELL_STR_BOOL_F "#f"
 
+struct US;
+
+// Function prototype for native implementation of procs
+typedef const struct Cell* (NativeFunc)(struct US* us, const struct Cell* args);
+
 // A cons cell; guess what these members are...
 typedef struct Cons {
     const struct Cell* car;
     const struct Cell* cdr;
 } Cons;
-
-// Function prototype for native implementation of procs
-typedef const struct Cell* (NativeFunc)(const struct Cell* args);
 
 // A procedure
 typedef struct Procedure {
@@ -70,30 +65,30 @@ extern const Cell* bool_t;
 extern const Cell* bool_f;
 
 // Destroy a cell
-void cell_destroy(Cell* cell);
+void cell_destroy(struct US* us, Cell* cell);
 
 // Create a cell with an integer value
-Cell* cell_create_int(long value);
-Cell* cell_create_int_from_string(const char* value, int len);
+Cell* cell_create_int(struct US* us, long value);
+Cell* cell_create_int_from_string(struct US* us, const char* value, int len);
 
 // Create a cell with a real value
-Cell* cell_create_real(double value);
-Cell* cell_create_real_from_string(const char* value, int len);
+Cell* cell_create_real(struct US* us, double value);
+Cell* cell_create_real_from_string(struct US* us, const char* value, int len);
 
 // Create a cell with a string value
-Cell* cell_create_string(const char* value, int len);
+Cell* cell_create_string(struct US* us, const char* value, int len);
 
 // Create a cell with a symbol value
-Cell* cell_create_symbol(const char* value, int len);
+Cell* cell_create_symbol(struct US* us, const char* value, int len);
 
 // Create a cell with a procedure
-Cell* cell_create_procedure(const Cell* params, const Cell* body, struct Env* env);
+Cell* cell_create_procedure(struct US* us, const Cell* params, const Cell* body, struct Env* env);
 
 // Create a cell with a native function
-Cell* cell_create_native(const char* label, NativeFunc* func);
+Cell* cell_create_native(struct US* us, const char* label, NativeFunc* func);
 
 // Implementation of cons
-Cell* cell_cons(const Cell* car, const Cell* cdr);
+Cell* cell_cons(struct US* us, const Cell* car, const Cell* cdr);
 
 // Implementations of car and cdr
 const Cell* cell_car(const Cell* cell);

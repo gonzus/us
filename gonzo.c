@@ -9,7 +9,7 @@
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
 
-static void test_arena(void)
+static void test_arena(US* us)
 {
     static struct {
         int bits[5];
@@ -89,7 +89,6 @@ static void test_arena(void)
         { { 63, 53, 43, 33, 23 } },
     };
     Arena* arena = arena_create();
-    arena_dump(arena, stdout);
     Cell* f[64];
     for (int j = 0; j < 64; ++j) {
         f[j] = arena_get_cell(arena, 0);
@@ -103,7 +102,7 @@ static void test_arena(void)
             if (b < 0) {
                 continue;
             }
-            arena_mark_cell_used(arena, f[b]);
+            arena_mark_cell_used(arena, f[b], 0);
             POOL_MARK_USED(comp, b);
         }
         Pool* p = arena_pool_for_cell(arena, f[0]);
@@ -139,7 +138,7 @@ static void test_globals(void)
     test_cell("cell", bool_f, "#f");
 }
 
-static void test_strings(void)
+static void test_strings(US* us)
 {
     static struct {
         const char* value;
@@ -155,12 +154,12 @@ static void test_strings(void)
         const char* value = data[j].value;
         char expected[1024];
         sprintf(expected, "\"%s\"", value);
-        Cell* c = cell_create_string(value, 0);
+        Cell* c = cell_create_string(us, value, 0);
         test_cell("string", c, expected);
     }
 }
 
-static void test_integers(void)
+static void test_integers(US* us)
 {
     static struct {
         long value;
@@ -178,12 +177,12 @@ static void test_integers(void)
         long value = data[j].value;
         char expected[1024];
         sprintf(expected, "%ld", value);
-        Cell* c = cell_create_int(value);
+        Cell* c = cell_create_int(us, value);
         test_cell("int", c, expected);
     }
 }
 
-static void test_reals(void)
+static void test_reals(US* us)
 {
     static struct {
         double value;
@@ -202,50 +201,49 @@ static void test_reals(void)
         double value = data[j].value;
         char expected[1024];
         sprintf(expected, "%lf", value);
-        Cell* c = cell_create_real(value);
+        Cell* c = cell_create_real(us, value);
         test_cell("real", c, expected);
     }
 }
 
-static void test_simple_list(void)
+static void test_simple_list(US* us)
 {
-    const Cell* c = cell_cons(cell_create_int(1),
-                        cell_cons(cell_create_int(2),
-                                  cell_cons(cell_create_int(3), nil)));
+    const Cell* c = cell_cons(us, cell_create_int(us, 1),
+                        cell_cons(us, cell_create_int(us, 2),
+                                  cell_cons(us, cell_create_int(us, 3), nil)));
     test_cell("simple_list", c, "(1 2 3)");
 }
 
-static void test_nested_list(void)
+static void test_nested_list(US* us)
 {
-    const Cell* c23 = cell_cons(cell_create_int(2),
-                          cell_cons(cell_create_int(3), nil));
-    const Cell* c = cell_cons(cell_create_int(1),
-                        cell_cons(c23,
-                                  cell_cons(cell_create_int(4), nil)));
+    const Cell* c23 = cell_cons(us, cell_create_int(us, 2),
+                          cell_cons(us, cell_create_int(us, 3), nil));
+    const Cell* c = cell_cons(us, cell_create_int(us, 1),
+                        cell_cons(us, c23,
+                                  cell_cons(us, cell_create_int(us, 4), nil)));
     test_cell("nested_list", c, "(1 (2 3) 4)");
 }
 
-static void test_dotted_list(void)
+static void test_dotted_list(US* us)
 {
-    const Cell* c = cell_cons(cell_create_int(1),
-                        cell_create_int(2));
+    const Cell* c = cell_cons(us, cell_create_int(us, 1),
+                        cell_create_int(us, 2));
     test_cell("dotted_list", c, "(1 . 2)");
 }
 
-static void test_lists(void)
+static void test_lists(US* us)
 {
-    test_simple_list();
-    test_nested_list();
-    test_dotted_list();
+    test_simple_list(us);
+    test_nested_list(us);
+    test_dotted_list(us);
 }
 
-static void test_symbol(void)
+static void test_symbol(US* us)
 {
     Env* parent = 0;
     Env* child = 0;
     do {
         parent = env_create(0);
-        env_ref(parent);
         if (parent) {
             printf("ok symbol created parent env\n");
         }
@@ -266,7 +264,7 @@ static void test_symbol(void)
         }
 
         const long value = 11;
-        const Cell* c = cell_create_int(value);
+        const Cell* c = cell_create_int(us, value);
         if (c) {
             printf("ok symbol created cell [%ld]\n", c->ival);
         }
@@ -287,7 +285,6 @@ static void test_symbol(void)
         }
 
         child = env_create(0);
-        env_ref(child);
         if (child) {
             printf("ok symbol created child env\n");
         }
@@ -315,13 +312,13 @@ static void test_symbol(void)
             break;
         }
     } while (0);
-    env_dump(child, stdout);
-    env_dump(parent, stdout);
-    env_unref(child);
-    env_unref(parent);
+    env_dump(child, stderr);
+    env_dump(parent, stderr);
+    env_destroy(child);
+    env_destroy(parent);
 }
 
-static void test_parser(void)
+static void test_parser(US* us)
 {
     static struct {
         const char* code;
@@ -381,20 +378,20 @@ static void test_parser(void)
     for (int j = 0; j < n; ++j) {
         const char* code = data[j].code;
         const char* expected = data[j].expected;
-        parser_parse(parser, code);
+        parser_parse(us, parser, code);
         Cell* c = parser_result(parser);
-        LOG(INFO, ("Cell %p ref 2", c));
         test_cell("parse", c, expected);
     }
     parser_destroy(parser);
 }
 
-static void test_eval_simple(void)
+static void test_eval_simple(US* us)
 {
     static struct {
         const char* expected;
         const char* code;
     } data[] = {
+#if 1
         { "11", " 11 " },
         { "-3.141500", " -3.1415 " },
         { "7", " (+ 3 4) " },
@@ -413,7 +410,7 @@ static void test_eval_simple(void)
         { "6", " (* 2 3) " },
         { "24", " (* 1 2 3 4) " },
         { "720", " (* 2 (* 3 4) (* 5 6)) " },
-        { "736", " (* 2 (+ 3 (* 5 4)) (+ (* 5 2) 6)) " },
+        { "1150", " (* 2 (+ 3 (* 5 4)) (+ (* 5 2) 6 (- 5 3) (+ 4 3))) " },
         { "7.500000", " (+ 3 4.5) " },
         { "8.000000", " (+ 3.5 4.5) " },
         { "()", " (+) " },
@@ -467,8 +464,8 @@ static void test_eval_simple(void)
         { "(+ 3 4)", " (quote (+ 3 4)) " },
         { "11", " (define gonzus 11) " },
         { "11", " gonzus " },
-        { "77", " (set! gonzus (* 7 11)) " },
-        { "77", " gonzus " },
+        { "1966", " (set! gonzus (+ 1960 6)) " },
+        { "1966", " gonzus " },
         { "()", " (set! invalid (+ 2 3)) " },  // this generates an error msg
         { "()", " invalid " },
         { "#t", " (=) " },
@@ -493,38 +490,49 @@ static void test_eval_simple(void)
         { "\"Negative\"", " (if (> 13 20) \"Positive!\" \"Negative\")  " },
         { "\"Negative\"", " (if (< 13 0)  \"Positive!\" \"Negative\")  " },
         { "\"Positive!\"", " (if (< 13 20) \"Positive!\" \"Negative\")  " },
+#endif
     };
 
-    US* us = us_create();
     int n = sizeof(data) / sizeof(data[0]);
     for (int j = 0; j < n; ++j) {
         const char* code = data[j].code;
         const char* expected = data[j].expected;
         Cell* c = us_eval_str(us, code);
         test_cell("eval_simple", c, expected);
+        arena_dump(us->arena, stderr);
+#if 1
+        us_gc(us);
+        arena_dump(us->arena, stderr);
+#endif
     }
-    us_destroy(us);
 }
 
-static void test_eval_complex(void)
+static void test_eval_complex(US* us)
 {
     static struct {
         const char* expected;
         const char* code;
     } data[] = {
-#if 0
+#if 1
+        { "#t", "(define gonzo_t #t)" },
+        { "#f", "(define gonzo_f #f)" },
         { "()", "(define nil (quote ()))" },
-        { "<*CODE*>", "(define null? (lambda (L) (= L nil)))" },
-        { "<*CODE*>", "(define length (lambda (L) (if (= L nil) 0 (+ 1 (length (cdr L))))))" },
-        { "<*CODE*>", "(define empty? (lambda (L) (= 0 (length L))))" },
-        { "(1 2 3 4)", "(define L (quote (1 2 3 4)))" },
 #endif
+        { "<*CODE*>", "(define null? (lambda (L) (= L nil)))" },
+        { "#t", "(null? (quote ()))" },
+        { "#t", "(null? nil)" },
+#if 1
+        { "(1 2 3 4)", "(define L (quote (1 2 3 4)))" },
+        { "#f", "(null? L)" },
+        { "<*CODE*>", "(define length (lambda (L) (if (= L nil) 0 (+ 1 (length (cdr L))))))" },
+        { "4", "(length L)" },
+#endif
+        { "<*CODE*>", "(define empty? (lambda (L) (= 0 (length L))))" },
         { "<*CODE*>", "(define baz (lambda (x) x))" },
         { "4", "(baz 4)" },
-#if 0
-        { "4", "(length L)" },
         { "#f", "(empty? L)" },
 
+#if 0
         { "<*CODE*>", " (define positive (lambda (x) (> x 0))) " },
         { "#t", " (positive  7) " },
         { "#f", " (positive -7) " },
@@ -584,15 +592,19 @@ static void test_eval_complex(void)
 #endif
     };
 
-    US* us = us_create();
     int n = sizeof(data) / sizeof(data[0]);
     for (int j = 0; j < n; ++j) {
         const char* code = data[j].code;
         const char* expected = data[j].expected;
+        arena_dump(us->arena, stderr);
         Cell* c = us_eval_str(us, code);
         test_cell("eval_complex", c, expected);
+        arena_dump(us->arena, stderr);
+#if 1
+        us_gc(us);
+        arena_dump(us->arena, stderr);
+#endif
     }
-    us_destroy(us);
 }
 
 int main(int argc, char* argv[])
@@ -600,20 +612,27 @@ int main(int argc, char* argv[])
     (void) argc;
     (void) argv;
 
-    test_arena();
+    US* us = us_create();
+
 #if 0
+    test_arena(us);
     test_globals();
-    test_strings();
-    test_integers();
-    test_reals();
-    test_lists();
-    test_symbol();
-    test_parser();
-    test_eval_simple();
+    test_strings(us);
 #endif
 #if 0
-    test_eval_complex();
+#endif
+#if 0
+    test_integers(us);
+    test_reals(us);
+    test_lists(us);
+    test_symbol(us);
+    test_parser(us);
+    test_eval_simple(us);
+#endif
+    test_eval_complex(us);
+#if 0
 #endif
 
+    us_destroy(us);
     return 0;
 }

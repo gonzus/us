@@ -11,9 +11,10 @@
 
 // a 1 bit in the pool mask indicates a free slot
 #define POOL_EMPTY      UINT64_MAX
-#define POOL_FULL       0ULL
 #define POOL_MASK_FMT   PRIx64
 
+#define POOL_IS_USED(m, x) \
+    (!((m) & (1ULL << x)))
 #define POOL_MARK_USED(m, x) \
     do { (m) &= ~(1ULL << x); } while (0)
 #define POOL_MARK_FREE(m, x) \
@@ -39,8 +40,10 @@ Cell* arena_get_cell(Arena* arena, int hint);
 // set all the cells in the arena to empty
 void arena_reset_to_empty(Arena* arena);
 
+int arena_cell_used(Arena* arena, const Cell* cell);
+
 // mark a specific cell in the arena as used
-void arena_mark_cell_used(Arena* arena, const Cell* cell);
+void arena_mark_cell_used(Arena* arena, const Cell* cell, const char* name);
 
 // get the pool in the arena where a specific cell lives
 Pool* arena_pool_for_cell(Arena* arena, const Cell* cell);

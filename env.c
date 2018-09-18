@@ -24,9 +24,6 @@ void env_destroy(Env* env)
             LOG(INFO, ("ENV: %5d: [%s] => [%s]\n", j, sym->name, cell_dump(sym->value, 1, dumper)));
             Symbol* tmp = sym;
             sym = sym->next;
-#if 0
-            cell_unref((Cell*) tmp->value);
-#endif
             MEM_FREE_SIZE(tmp->name, 0);
             MEM_FREE_TYPE(tmp, 1, Symbol);
         }
@@ -48,40 +45,14 @@ Env* env_create(int size)
     return env;
 }
 
-Env* env_ref(Env* env)
-{
-    if (!env) {
-        return 0;
-    }
-    ++env->refcnt;
-    LOG(DEBUG, ("ENV: ref %p to %d", env, env->refcnt));
-    return env;
-}
-
-Env* env_unref(Env* env)
-{
-    if (!env) {
-        return 0;
-    }
-    --env->refcnt;
-    LOG(DEBUG, ("ENV: unref %p to %d", env, env->refcnt));
-    if (env->refcnt) {
-        return env;
-    }
-    LOG(DEBUG, ("ENV: unref %p deleting", env));
-    env_unref(env->parent);
-    env_destroy(env);
-    return 0;
-}
-
 void env_chain(Env* env, Env* parent)
 {
     if (!parent) {
         return;
     }
 
-    env->parent = env_ref(parent);
-    LOG(DEBUG, ("ENV: chained %p to parent %p", env, env->parent));
+    env->parent = parent;
+    LOG(INFO, ("ENV: chained %p to parent %p", env, env->parent));
 }
 
 Symbol* env_lookup(Env* env, const char* name, int create)

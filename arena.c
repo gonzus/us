@@ -16,7 +16,18 @@ Arena* arena_create(void)
 void arena_destroy(Arena* arena)
 {
     LOG(INFO, ("arena: destroying arena %p with %d pools", arena, arena->size));
+    arena_dump(arena, stderr);
     for (Pool* pool = arena->cells; pool; ) {
+        for (int j = 0; j < ARENA_POOL_SIZE; ++j) {
+            Cell* cell = &pool->slots[j];
+            switch (cell->tag) {
+                case CELL_STRING:
+                case CELL_SYMBOL:
+                    MEM_FREE_SIZE(cell->sval, 0);
+                    break;
+            }
+            cell->tag = CELL_NONE;
+        }
         Pool* tmp = pool;
         pool = pool->next;
         LOG(INFO, ("arena: destroying pool %p", tmp));
@@ -39,7 +50,8 @@ Cell* arena_get_cell(Arena* arena, int hint)
         // return value of zero from any of these functions means that the
         // argument was zero.
         int lsb = ffsll(pool->mask);
-        if (lsb) { // same as pool->mask == POOL_FULL
+        if (lsb) {
+            // there is at least one bit set to 1 => free slot
             pos = lsb - 1;
             break;
         }
@@ -58,7 +70,16 @@ Cell* arena_get_cell(Arena* arena, int hint)
 
     // mark pos as used and return it
     POOL_MARK_USED(pool->mask, pos);
-    return &pool->slots[pos];
+
+    Cell* cell = &pool->slots[pos];
+    switch (cell->tag) {
+        case CELL_STRING:
+        case CELL_SYMBOL:
+            MEM_FREE_SIZE(cell->sval, 0);
+            break;
+    }
+    cell->tag = CELL_NONE;
+    return cell;
 }
 
 void arena_reset_to_empty(Arena* arena)
@@ -68,16 +89,26 @@ void arena_reset_to_empty(Arena* arena)
     }
 }
 
-void arena_mark_cell_used(Arena* arena, const Cell* cell)
+int arena_cell_used(Arena* arena, const Cell* cell)
 {
     Pool* pool = arena_pool_for_cell(arena, cell);
-    if (pool) {
-        int pos = cell - pool->slots;
-        POOL_MARK_USED(pool->mask, pos);
+    if (!pool) {
+        return 0;
+    }
+    int pos = cell - pool->slots;
+    return POOL_IS_USED(pool->mask, pos);
+}
+
+void arena_mark_cell_used(Arena* arena, const Cell* cell, const char* name)
+{
+    Pool* pool = arena_pool_for_cell(arena, cell);
+    if (!pool) {
         return;
     }
-
-    LOG(FATAL, ("ARENA: cell %p out of bound -- WTF?", cell));
+    char dumper[10*1024];
+    int pos = cell - pool->slots;
+    POOL_MARK_USED(pool->mask, pos);
+    fprintf(stderr, "== Marking as used %p -- %s\n", cell, cell_dump(cell, 1, dumper));
 }
 
 Pool* arena_pool_for_cell(Arena* arena, const Cell* cell)
@@ -88,13 +119,21 @@ Pool* arena_pool_for_cell(Arena* arena, const Cell* cell)
         }
 
     }
+    // LOG(DEBUG, ("ARENA: cell %p out of bound -- WTF?", cell));
     return 0;
 }
 
 void arena_dump(Arena* arena, FILE* fp)
 {
-    fprintf(fp, "Arena at %p with %d pools\n", arena, arena->size);
+    fprintf(fp, "=== Arena at %p with %d pools\n", arena, arena->size);
     for (Pool* pool = arena->cells; pool; pool = pool->next) {
-        fprintf(fp, "  Pool at %p, mask %" PRIx64 "\n", pool, pool->mask);
+        int free = 0;
+        for (int j = 0; j < ARENA_POOL_SIZE; ++j) {
+            int b = 1ULL << j;
+            if (pool->mask & b) {
+                ++free;
+            }
+        }
+        fprintf(fp, "===  Pool at %p, free slots %d, mask %0*" PRIx64 "\n", pool, free, ARENA_POOL_SIZE * 2 / sizeof(uint64_t), pool->mask);
     }
 }

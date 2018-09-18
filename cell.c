@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
+#include "us.h"
+#include "arena.h"
 #include "env.h"
 #include "cell.h"
 
@@ -21,12 +23,12 @@ const Cell* nil    = &cell_nil;
 const Cell* bool_t = &cell_bool_t;
 const Cell* bool_f = &cell_bool_f;
 
-static Cell* cell_build(int tag);
+static Cell* cell_build(US* us, int tag);
 static int get_str_len(const char* str, int len);
 static int cell_printer(const Cell* cell, int debug, char* buf);
 static int cell_print_all(const Cell* cell, char* buf);
 
-void cell_destroy(Cell* cell)
+void cell_destroy(US* us, Cell* cell)
 {
     LOG(INFO, ("CELL: destroying %p tag %d", cell, cell->tag));
     switch (cell->tag) {
@@ -35,32 +37,23 @@ void cell_destroy(Cell* cell)
             MEM_FREE_SIZE(cell->sval, 0);
             break;
         case CELL_CONS:
-#if 0
-            cell_unref(cell->cons.car);
-            cell_unref(cell->cons.cdr);
-#endif
             break;
         case CELL_PROC:
-#if 0
-            cell_unref(cell->pval.params);
-            cell_unref(cell->pval.body);
-            env_unref(cell->pval.env);
-#endif
             break;
     }
     MEM_FREE_TYPE(cell, 1, Cell);
 }
 
-Cell* cell_create_int(long value)
+Cell* cell_create_int(US* us, long value)
 {
-    Cell* cell = cell_build(CELL_INT);
+    Cell* cell = cell_build(us, CELL_INT);
     cell->ival = value;
     char dumper[10*1024];
     LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
-Cell* cell_create_int_from_string(const char* value, int len)
+Cell* cell_create_int_from_string(US* us, const char* value, int len)
 {
     len = get_str_len(value, len);
     int sign = 1;
@@ -77,19 +70,19 @@ Cell* cell_create_int_from_string(const char* value, int len)
         int digit = value[j] - '0';
         lval = lval * 10 + digit;
     }
-    return cell_create_int(sign * lval);
+    return cell_create_int(us, sign * lval);
 }
 
-Cell* cell_create_real(double value)
+Cell* cell_create_real(US* us, double value)
 {
-    Cell* cell = cell_build(CELL_REAL);
+    Cell* cell = cell_build(us, CELL_REAL);
     cell->rval = value;
     char dumper[10*1024];
     LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
-Cell* cell_create_real_from_string(const char* value, int len)
+Cell* cell_create_real_from_string(US* us, const char* value, int len)
 {
     len = get_str_len(value, len);
     int sign = 1;
@@ -116,12 +109,12 @@ Cell* cell_create_real_from_string(const char* value, int len)
             dval = dval * 10.0 + digit;
         }
     }
-    return cell_create_real(sign * dval);
+    return cell_create_real(us, sign * dval);
 }
 
-Cell* cell_create_string(const char* value, int len)
+Cell* cell_create_string(US* us, const char* value, int len)
 {
-    Cell* cell = cell_build(CELL_STRING);
+    Cell* cell = cell_build(us, CELL_STRING);
     len = get_str_len(value, len);
     MEM_ALLOC_SIZE(cell->sval, len + 1);
     if (value && len) {
@@ -133,18 +126,18 @@ Cell* cell_create_string(const char* value, int len)
     return cell;
 }
 
-Cell* cell_create_symbol(const char* value, int len)
+Cell* cell_create_symbol(US* us, const char* value, int len)
 {
-    Cell* cell = cell_create_string(value, len);
+    Cell* cell = cell_create_string(us, value, len);
     cell->tag = CELL_SYMBOL;
     char dumper[10*1024];
     LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
-Cell* cell_create_procedure(const Cell* params, const Cell* body, Env* env)
+Cell* cell_create_procedure(US* us, const Cell* params, const Cell* body, Env* env)
 {
-    Cell* cell = cell_build(CELL_PROC);
+    Cell* cell = cell_build(us, CELL_PROC);
     cell->pval.params = params;
     cell->pval.body = body;
     cell->pval.env = env;  // I love you, lexical binding
@@ -153,9 +146,9 @@ Cell* cell_create_procedure(const Cell* params, const Cell* body, Env* env)
     return cell;
 }
 
-Cell* cell_create_native(const char* label, NativeFunc* func)
+Cell* cell_create_native(US* us, const char* label, NativeFunc* func)
 {
-    Cell* cell = cell_build(CELL_NATIVE);
+    Cell* cell = cell_build(us, CELL_NATIVE);
     cell->nval.label = label;
     cell->nval.func = func;
     char dumper[10*1024];
@@ -163,9 +156,9 @@ Cell* cell_create_native(const char* label, NativeFunc* func)
     return cell;
 }
 
-Cell* cell_cons(const Cell* car, const Cell* cdr)
+Cell* cell_cons(US* us, const Cell* car, const Cell* cdr)
 {
-    Cell* cell = cell_build(CELL_CONS);
+    Cell* cell = cell_build(us, CELL_CONS);
     cell->cons.car = car;
     cell->cons.cdr = cdr;
     char dumper[10*1024];
@@ -206,10 +199,9 @@ const char* cell_dump(const Cell* cell, int debug, char* buf)
     return buf;
 }
 
-static Cell* cell_build(int tag)
+static Cell* cell_build(US* us, int tag)
 {
-    Cell* cell = 0;
-    MEM_ALLOC_TYPE(cell, 1, Cell);
+    Cell* cell = arena_get_cell(us->arena, 0);
     cell->tag = tag;
     return cell;
 }
