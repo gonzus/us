@@ -4,10 +4,10 @@ find . -type f |
 egrep -v '/(\.git)/' |
 egrep '\.(h|c)$' |
 egrep -v '(gonzo)\.(c)$' |
-egrep -v '(siod|tinyscheme.*)/' |
+egrep -v '(siod|tinyscheme.*|libtommath.*)/' |
 while read f
 do
-    echo -n $f
+    echo -n "$f "
     cat $f |
     sed -e 's+//.*++g' |
     egrep -v '^[ \t]*$' |
