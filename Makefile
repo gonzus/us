@@ -6,6 +6,8 @@ CFLAGS += -g
 CFLAGS += -I.
 CFLAGS += -Wall -Wextra
 CFLAGS += -Werror
+CFLAGS += -D_GNU_SOURCE
+CFLAGS += -D_POSIX_SOURCE
 
 C_LIB_SRC = \
 	log.c \
@@ -25,7 +27,7 @@ C_LIB_OBJ = $(C_LIB_SRC:.c=.o)
 LIBNAME = lib$(LIBRARY).a
 
 %.o: %.c $(C_LIB_HDR)
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) --std=c99 -c $(CFLAGS) -o $@ $<
 
 $(LIBNAME): $(C_LIB_OBJ)
 	ar cr $@ $^
