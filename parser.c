@@ -11,9 +11,6 @@
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
-#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_DEBUG
-static char dumper[10*1024];
-#endif
 
 #define PARSER_DEFAULT_DEPTH 128
 
@@ -178,15 +175,6 @@ void parser_parse(US* us, Parser* parser, const char* str)
     }
 }
 
-#if LOG_LEVEL <= LOG_LEVEL_DEBUG
-static const char* State[STATE_LAST] = {
-    "STATE_NORMAL",
-    "STATE_INT",
-    "STATE_REAL",
-    "STATE_STRING",
-    "STATE_SYMBOL",
-};
-#endif
 #if LOG_LEVEL <= LOG_LEVEL_DEBUG
 static const char* Token[TOKEN_LAST] = {
     "TOKEN_NONE",

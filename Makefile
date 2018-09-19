@@ -5,8 +5,13 @@ OS := $(shell uname -s)
 endif
 
 C_PP_FLAGS += -I.
+
 # C_PP_FLAGS += -DMEM_DEBUG=0
 C_PP_FLAGS += -DMEM_DEBUG=1
+
+# C_PP_FLAGS += -DLOG_LEVEL=0  # DEBUG
+# C_PP_FLAGS += -DLOG_LEVEL=1  # INFO -- default
+# C_PP_FLAGS += -DLOG_LEVEL=2  # WARN
 
 ifeq ($(OS),Linux)
 C_PP_FLAGS += -D_GNU_SOURCE

@@ -13,9 +13,6 @@
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
-#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_DEBUG
-static char dumper[10*1024];
-#endif
 
 typedef struct NativeData {
     const char* name;
