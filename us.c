@@ -22,6 +22,8 @@ typedef struct NativeData {
 } NativeData;
 
 static Env* make_global_env(US* us);
+static void mark_cell(US* us, const Cell* cell);
+static void mark_env(US* us, Env* env);
 
 US* us_create(void) {
     US* us = 0;
@@ -36,43 +38,55 @@ US* us_create(void) {
 void us_destroy(US* us)
 {
     LOG(INFO, ("US: destroying %p", us));
-    env_destroy(us->env);
+    // env_destroy(us->env);
     parser_destroy(us->parser);
     arena_destroy(us->arena);
     MEM_FREE_TYPE(us, 1, US);
 }
 
-static int mark_cell(US* us, const Cell* cell)
+static void mark_cell(US* us, const Cell* cell)
 {
     if (!cell) {
-        return 0;
+        return;
     }
-    if (arena_cell_used(us->arena, cell)) {
-        fprintf(stderr, "=== MARKING already marked\n");
-        return 0;
+    if (arena_is_cell_used(us->arena, cell)) {
+        fprintf(stderr, "=== MARKING cell already marked\n");
+        return;
     }
-    int count = 0;
-    arena_mark_cell_used(us->arena, cell, 0);
-    ++count;
+    fprintf(stderr, "=== MARKING cell\n");
+    arena_mark_cell_used(us->arena, cell);
     switch (cell->tag) {
         case CELL_CONS:
-            fprintf(stderr, "=== MARKING cons\n");
-#if 0
-            for (const Cell* p = cell->cons.car; p && p != nil; p = p->cons.cdr) {
-                count += mark_cell(us, p);
-            }
-#else
-            count += mark_cell(us, cell->cons.car);
-            count += mark_cell(us, cell->cons.cdr);
-#endif
+            fprintf(stderr, "=== MARKING cell cons\n");
+            mark_cell(us, cell->cons.car);
+            mark_cell(us, cell->cons.cdr);
             break;
         case CELL_PROC:
-            fprintf(stderr, "=== MARKING proc\n");
-            count += mark_cell(us, cell->pval.params);
-            count += mark_cell(us, cell->pval.body);
+            fprintf(stderr, "=== MARKING cell proc\n");
+            mark_cell(us, cell->pval.params);
+            mark_cell(us, cell->pval.body);
+            mark_env(us, cell->pval.env);
             break;
     }
-    return count;
+}
+
+static void mark_env(US* us, Env* env)
+{
+    if (!env) {
+        return;
+    }
+    if (arena_is_env_used(us->arena, env)) {
+        fprintf(stderr, "=== MARKING env already marked\n");
+        return;
+    }
+    fprintf(stderr, "=== MARKING env\n");
+    arena_mark_env_used(us->arena, env);
+    for (int j = 0; j < env->size; ++j) {
+        for (Symbol* sym = env->table[j]; sym; sym = sym->next) {
+            mark_cell(us, sym->value);
+        }
+    }
+    mark_env(us, env->parent);
 }
 
 int us_gc(US* us)
@@ -80,11 +94,7 @@ int us_gc(US* us)
     int count = 0;
     arena_reset_to_empty(us->arena);
     for (Env* env = us->env; env; env = env->parent) {
-        for (int j = 0; j < env->size; ++j) {
-            for (Symbol* sym = env->table[j]; sym; sym = sym->next) {
-                count += mark_cell(us, sym->value);
-            }
-        }
+        mark_env(us, env);
     }
     return count;
 }
@@ -162,7 +172,7 @@ static Env* make_global_env(US* us)
         { "cdr"     , func_cdr   },
         { "begin"   , func_begin },
     };
-    Env* env = env_create(0);
+    Env* env = arena_get_env(us->arena, 0);
     int n = sizeof(data) / sizeof(data[0]);
     LOG(INFO, ("US: registering all %d native handlers, us %p, arena %p", n, us, us->arena));
     for (int j = 0; j < n; ++j) {

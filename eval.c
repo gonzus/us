@@ -1,5 +1,6 @@
 #include <string.h>
 #include "us.h"
+#include "arena.h"
 #include "cell.h"
 #include "env.h"
 #include "parser.h"
@@ -135,7 +136,9 @@ static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cel
 
     // We create a new small-ish environment where we can bind all evaled args
     // in fresh slots for the params (see *COMMENT* below)
-    Env* local = env_create(pos + 1);
+    Env* envtje = arena_get_env(us->arena, pos + 1);
+    LOG(INFO, ("--- GOT LOCAL %p ---", envtje));
+    LOG(INFO, ("--- LOCAL SIZE %d ---", envtje->size));
     LOG(INFO, ("EVAL: proc with %d args: %s", pos, cell_dump(proc, 1, dumper)));
     LOG(INFO, ("EVAL: proc on: %s", cell_dump(cell, 1, dumper)));
     int ok = 1;
@@ -159,7 +162,7 @@ static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cel
         }
         LOG(INFO, ("Evaluated arg #%d [%s]", pos, par->sval));
         // now we create a symbol with the correct name=value association
-        Symbol* sym = env_lookup(local, par->sval, 1);
+        Symbol* sym = env_lookup(envtje, par->sval, 1);
         if (!sym) {
             LOG(ERROR, ("Could not create binding for arg #%d [%s]", pos, par->sval));
             ok = 0;
@@ -170,16 +173,11 @@ static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cel
     }
     // *COMMENT* only *now* we chain our local env with its parent, which is
     // the env that we captured when the lamdba was created.
-    env_chain(local, proc->pval.env);
+    env_chain(envtje, proc->pval.env);
 
     if (ok) {
         // finally eval the proc body in this newly created env
-        ret = cell_eval(us, proc->pval.body, local);
-
-        // We cannot destroy our local env because it may have been "captured" and
-        // will be returned to the caller; this  happens when returning a lambda as
-        // the result of calling a procedure.
-        // TODO: implement garbage collection :-)
+        ret = cell_eval(us, proc->pval.body, envtje);
     }
     if (!ret) {
         ret = nil;

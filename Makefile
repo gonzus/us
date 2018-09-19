@@ -33,6 +33,8 @@ $(LIBNAME): $(C_LIB_OBJ)
 gonzo: gonzo.o $(LIBNAME)
 	$(CC) $(CFLAGS) -o$@ $< -L. -l$(LIBRARY)
 
+#$(CC) $(CFLAGS) -o$@ $< -L. -l$(LIBRARY) -L ../electric-fence -lefence
+
 repl: repl.o $(LIBNAME)
 	$(CC) $(CFLAGS) -o$@ $< -L. -l$(LIBRARY)
 

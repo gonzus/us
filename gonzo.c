@@ -102,10 +102,10 @@ static void test_arena(US* us)
             if (b < 0) {
                 continue;
             }
-            arena_mark_cell_used(arena, f[b], 0);
+            arena_mark_cell_used(arena, f[b]);
             POOL_MARK_USED(comp, b);
         }
-        Pool* p = arena_pool_for_cell(arena, f[0]);
+        CellPool* p = arena_get_pool_for_cell(arena, f[0]);
         uint64_t last = p->mask;
         if (comp == last) {
             printf("ok %" POOL_MASK_FMT "\n", comp);
@@ -391,7 +391,6 @@ static void test_eval_simple(US* us)
         const char* expected;
         const char* code;
     } data[] = {
-#if 1
         { "11", " 11 " },
         { "-3.141500", " -3.1415 " },
         { "7", " (+ 3 4) " },
@@ -490,7 +489,6 @@ static void test_eval_simple(US* us)
         { "\"Negative\"", " (if (> 13 20) \"Positive!\" \"Negative\")  " },
         { "\"Negative\"", " (if (< 13 0)  \"Positive!\" \"Negative\")  " },
         { "\"Positive!\"", " (if (< 13 20) \"Positive!\" \"Negative\")  " },
-#endif
     };
 
     int n = sizeof(data) / sizeof(data[0]);
@@ -500,10 +498,8 @@ static void test_eval_simple(US* us)
         Cell* c = us_eval_str(us, code);
         test_cell("eval_simple", c, expected);
         arena_dump(us->arena, stderr);
-#if 1
         us_gc(us);
         arena_dump(us->arena, stderr);
-#endif
     }
 }
 
@@ -513,26 +509,21 @@ static void test_eval_complex(US* us)
         const char* expected;
         const char* code;
     } data[] = {
-#if 1
         { "#t", "(define gonzo_t #t)" },
         { "#f", "(define gonzo_f #f)" },
         { "()", "(define nil (quote ()))" },
-#endif
         { "<*CODE*>", "(define null? (lambda (L) (= L nil)))" },
         { "#t", "(null? (quote ()))" },
         { "#t", "(null? nil)" },
-#if 1
         { "(1 2 3 4)", "(define L (quote (1 2 3 4)))" },
         { "#f", "(null? L)" },
         { "<*CODE*>", "(define length (lambda (L) (if (= L nil) 0 (+ 1 (length (cdr L))))))" },
         { "4", "(length L)" },
-#endif
         { "<*CODE*>", "(define empty? (lambda (L) (= 0 (length L))))" },
         { "<*CODE*>", "(define baz (lambda (x) x))" },
         { "4", "(baz 4)" },
         { "#f", "(empty? L)" },
 
-#if 0
         { "<*CODE*>", " (define positive (lambda (x) (> x 0))) " },
         { "#t", " (positive  7) " },
         { "#f", " (positive -7) " },
@@ -571,12 +562,15 @@ static void test_eval_complex(US* us)
         { "<*CODE*>", " (define fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))) " },
         { "5", " (fib 5) " },
         { "13", " (fib 7) " },
+        { "55", " (fib 10) " },
+#if 0
         { "6765", " (fib 20) " },
+        { "(0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181)", "(map fib (range 0 20))" },
+#endif
         { "<*CODE*>", "(define range (lambda (a b) (if (= a b) (quote ()) (cons a (range (+ a 1) b)))))" },
         { "(0 1 2 3 4 5 6 7 8 9)", "(range 0 10)" },
         { "<*CODE*>", "(define map (lambda (f l) (if (null? l) nil (cons (f (car l)) (map f (cdr l))))))" },
         { "(0 1 1 2 3 5 8 13 21 34)", "(map fib (range 0 10))" },
-        { "(0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181)", "(map fib (range 0 20))" },
 
         { "bofur", " (car (quote (bofur bombur))) " },
         { "(bombur)", " (cdr (quote (bofur bombur))) " },
@@ -589,7 +583,6 @@ static void test_eval_complex(US* us)
         { "180.000000", " (acct2 -20.0) " },
         { "70.000000", " (acct1 -10.0) " },
         { "160.000000", " (acct2 -20.0) " },
-#endif
     };
 
     int n = sizeof(data) / sizeof(data[0]);
@@ -600,10 +593,8 @@ static void test_eval_complex(US* us)
         Cell* c = us_eval_str(us, code);
         test_cell("eval_complex", c, expected);
         arena_dump(us->arena, stderr);
-#if 1
         us_gc(us);
         arena_dump(us->arena, stderr);
-#endif
     }
 }
 
@@ -614,24 +605,16 @@ int main(int argc, char* argv[])
 
     US* us = us_create();
 
-#if 0
     test_arena(us);
     test_globals();
     test_strings(us);
-#endif
-#if 0
-#endif
-#if 0
     test_integers(us);
     test_reals(us);
     test_lists(us);
     test_symbol(us);
     test_parser(us);
     test_eval_simple(us);
-#endif
     test_eval_complex(us);
-#if 0
-#endif
 
     us_destroy(us);
     return 0;
