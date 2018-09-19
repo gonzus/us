@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include "log.h"
 
 static const char* log_file = 0;
