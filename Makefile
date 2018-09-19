@@ -4,8 +4,8 @@ first: all
 CFLAGS += -DMEM_DEBUG=1
 CFLAGS += -g
 CFLAGS += -I.
-CFLAGS += -Wall
-CFLAGS += -Wextra
+CFLAGS += -Wall -Wextra
+CFLAGS += -Werror
 
 C_LIB_SRC = \
 	log.c \

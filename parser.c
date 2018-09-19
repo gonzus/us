@@ -1,18 +1,19 @@
 #include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include "us.h"
 #include "cell.h"
 #include "parser.h"
 
 #if !defined(MEM_DEBUG)
-#define MEM_DEBUG 1
+#define MEM_DEBUG 0
 #endif
 #include "mem.h"
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
+#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_DEBUG
+static char dumper[10*1024];
+#endif
 
 #define PARSER_DEFAULT_DEPTH 128
 
@@ -69,7 +70,7 @@ void parser_destroy(Parser* parser)
 void parser_reset(Parser* parser, const char* str)
 {
     parser->level = 0;
-    PARSER_EXP_RESET(parser->exp[0]);
+    LIST_RESET(parser->exp[0]);
     parser->state = STATE_NORMAL;
     parser->str = str;
     parser->pos = 0;
@@ -177,7 +178,7 @@ void parser_parse(US* us, Parser* parser, const char* str)
     }
 }
 
-#if LOG_LEVEL <= LOG_LEVEL_INFO
+#if LOG_LEVEL <= LOG_LEVEL_DEBUG
 static const char* State[STATE_LAST] = {
     "STATE_NORMAL",
     "STATE_INT",
@@ -185,6 +186,8 @@ static const char* State[STATE_LAST] = {
     "STATE_STRING",
     "STATE_SYMBOL",
 };
+#endif
+#if LOG_LEVEL <= LOG_LEVEL_INFO
 static const char* Token[TOKEN_LAST] = {
     "TOKEN_NONE",
     "TOKEN_INT",
@@ -227,7 +230,7 @@ static int token(US* us, Parser* parser, int token)
         LOG(INFO, ("%-15.15s", Token[token]));
     }
 
-    const Cell* cell = 0;
+    Cell* cell = 0;
     switch (token) {
         case TOKEN_INT:
             cell = cell_create_int_from_string(us, tok, len);
@@ -255,7 +258,7 @@ static int token(US* us, Parser* parser, int token)
 
         case TOKEN_LPAREN:
             ++parser->level;
-            PARSER_EXP_RESET(parser->exp[parser->level]);
+            LIST_RESET(parser->exp[parser->level]);
             break;
 
         case TOKEN_RPAREN:
@@ -276,14 +279,14 @@ static int token(US* us, Parser* parser, int token)
     Expression* exp = &parser->exp[parser->level];
     if (parser->level == 0) {
         LOG(INFO, ("PARSE: storing level zero"));
-        PARSER_EXP_RESET(*exp);
+        LIST_RESET(*exp);
         exp->frst = cell;
         return 0;
     }
 
     Cell* c = cell_cons(us, cell, nil);
     LOG(INFO, ("PARSER: wrapped cell in cons"));
-    PARSER_EXP_APPEND(exp, c);
+    LIST_APPEND(exp, c);
 
     return 0;
 }

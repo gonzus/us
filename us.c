@@ -1,5 +1,3 @@
-#include <stdlib.h>
-#include <string.h>
 #include "arena.h"
 #include "cell.h"
 #include "env.h"
@@ -9,12 +7,15 @@
 #include "us.h"
 
 #if !defined(MEM_DEBUG)
-#define MEM_DEBUG 1
+#define MEM_DEBUG 0
 #endif
 #include "mem.h"
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
+#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_DEBUG
+static char dumper[10*1024];
+#endif
 
 typedef struct NativeData {
     const char* name;
@@ -99,7 +100,7 @@ int us_gc(US* us)
     return count;
 }
 
-const Cell* us_eval_str(US* us, const char* code)
+Cell* us_eval_str(US* us, const char* code)
 {
     parser_parse(us, us->parser, code);
     Cell* c = parser_result(us->parser);
@@ -113,7 +114,7 @@ const Cell* us_eval_str(US* us, const char* code)
     cell_print(c, stderr, 1);
 #endif
 
-    const Cell* r = 0;
+    Cell* r = 0;
 
 #if 1
     r = cell_eval(us, c, us->env);

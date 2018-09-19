@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <string.h>
 #include "us.h"
 #include "arena.h"
@@ -12,6 +11,9 @@
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
+#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_INFO
+static char dumper[10*1024];
+#endif
 
 // These are special values that have a single unique instance
 static Cell cell_nil    = { CELL_NONE, {0} };
@@ -19,17 +21,19 @@ static Cell cell_bool_t = { CELL_INT , {1} };
 static Cell cell_bool_f = { CELL_INT , {0} };
 
 // Global references to the special values
-const Cell* nil    = &cell_nil;
-const Cell* bool_t = &cell_bool_t;
-const Cell* bool_f = &cell_bool_f;
+Cell* nil    = &cell_nil;
+Cell* bool_t = &cell_bool_t;
+Cell* bool_f = &cell_bool_f;
 
 static Cell* cell_build(US* us, int tag);
+static Cell* cell_create_string_value(US* us, const char* value, int len, int tag);
 static int get_str_len(const char* str, int len);
 static int cell_printer(const Cell* cell, int debug, char* buf);
 static int cell_print_all(const Cell* cell, char* buf);
 
 void cell_destroy(US* us, Cell* cell)
 {
+    (void) us;
     LOG(INFO, ("CELL: destroying %p tag %d", cell, cell->tag));
     switch (cell->tag) {
         case CELL_STRING:
@@ -48,7 +52,6 @@ Cell* cell_create_int(US* us, long value)
 {
     Cell* cell = cell_build(us, CELL_INT);
     cell->ival = value;
-    char dumper[10*1024];
     LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
@@ -77,8 +80,7 @@ Cell* cell_create_real(US* us, double value)
 {
     Cell* cell = cell_build(us, CELL_REAL);
     cell->rval = value;
-    char dumper[10*1024];
-    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
+    LOG(DEBUG, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
@@ -114,35 +116,25 @@ Cell* cell_create_real_from_string(US* us, const char* value, int len)
 
 Cell* cell_create_string(US* us, const char* value, int len)
 {
-    Cell* cell = cell_build(us, CELL_STRING);
-    len = get_str_len(value, len);
-    MEM_ALLOC_SIZE(cell->sval, len + 1);
-    if (value && len) {
-        memcpy(cell->sval, value, len);
-    }
-    cell->sval[len] = '\0';
-    char dumper[10*1024];
-    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
+    Cell* cell = cell_create_string_value(us, value, len, CELL_STRING);
+    LOG(DEBUG, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
 Cell* cell_create_symbol(US* us, const char* value, int len)
 {
-    Cell* cell = cell_create_string(us, value, len);
-    cell->tag = CELL_SYMBOL;
-    char dumper[10*1024];
-    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
+    Cell* cell = cell_create_string_value(us, value, len, CELL_SYMBOL);
+    LOG(DEBUG, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
-Cell* cell_create_procedure(US* us, const Cell* params, const Cell* body, Env* env)
+Cell* cell_create_procedure(US* us, Cell* params, Cell* body, Env* env)
 {
     Cell* cell = cell_build(us, CELL_PROC);
     cell->pval.params = params;
     cell->pval.body = body;
     cell->pval.env = env;  // I love you, lexical binding
-    char dumper[10*1024];
-    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
+    LOG(DEBUG, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
@@ -151,22 +143,20 @@ Cell* cell_create_native(US* us, const char* label, NativeFunc* func)
     Cell* cell = cell_build(us, CELL_NATIVE);
     cell->nval.label = label;
     cell->nval.func = func;
-    char dumper[10*1024];
     LOG(DEBUG, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
-Cell* cell_cons(US* us, const Cell* car, const Cell* cdr)
+Cell* cell_cons(US* us, Cell* car, Cell* cdr)
 {
     Cell* cell = cell_build(us, CELL_CONS);
     cell->cons.car = car;
     cell->cons.cdr = cdr;
-    char dumper[10*1024];
-    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
+    LOG(DEBUG, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 
-const Cell* cell_car(const Cell* cell)
+Cell* cell_car(Cell* cell)
 {
     if (cell->tag != CELL_CONS) {
         return 0;
@@ -174,7 +164,7 @@ const Cell* cell_car(const Cell* cell)
     return cell->cons.car;
 }
 
-const Cell* cell_cdr(const Cell* cell)
+Cell* cell_cdr(Cell* cell)
 {
     if (cell->tag != CELL_CONS) {
         return 0;
@@ -203,6 +193,18 @@ static Cell* cell_build(US* us, int tag)
 {
     Cell* cell = arena_get_cell(us->arena, 0);
     cell->tag = tag;
+    return cell;
+}
+
+static Cell* cell_create_string_value(US* us, const char* value, int len, int tag)
+{
+    Cell* cell = cell_build(us, tag);
+    len = get_str_len(value, len);
+    MEM_ALLOC_SIZE(cell->sval, len + 1);
+    if (value && len) {
+        memcpy(cell->sval, value, len);
+    }
+    cell->sval[len] = '\0';
     return cell;
 }
 

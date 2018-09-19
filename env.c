@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <string.h>
 #include "cell.h"
 #include "env.h"
@@ -10,10 +9,14 @@
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
+#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_INFO
+static char dumper[10*1024];
+#endif
 
+// Default size for the environment's hash table.
+// It is a prime number below 1024.
 #define ENV_DEFAULT_SIZE 1021
 
-static char dumper[10*1024];
 static unsigned long hash(const char* str);
 
 void env_destroy(Env* env)

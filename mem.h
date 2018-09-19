@@ -1,8 +1,10 @@
 #ifndef MEM_H_
 #define MEM_H_
 
+#include <string.h>
+
 #if !defined(MEM_DEBUG)
-#define MEM_DEBUG 1
+#define MEM_DEBUG 0
 #endif
 
 #if defined(MEM_DEBUG) && MEM_DEBUG > 0
@@ -33,6 +35,8 @@
     } while (0)
 
 #else
+
+#include <stdlib.h>
 
 #define MEM_ALLOC_TYPE(v, c, t) \
     do { \

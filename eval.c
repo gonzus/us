@@ -5,10 +5,15 @@
 #include "env.h"
 #include "parser.h"
 #include "eval.h"
-
+//
+// #if !defined(MEM_DEBUG)
+// #define MEM_DEBUG 0
+// #endif
+// #include "mem.h"
+//
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
-#if LOG_LEVEL <= LOG_LEVEL_INFO
+#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_INFO
 static char dumper[10*1024];
 #endif
 
@@ -19,38 +24,37 @@ static char dumper[10*1024];
 #define EVAL_SET    "set!"
 #define EVAL_LAMBDA "lambda"
 
-static const Cell* cell_symbol(const Cell* cell, Env* env);
-static const Cell* cell_quote(const Cell* cell);  // no need for env
-static const Cell* cell_apply(US* us, const Cell* cell, Env* env);
-static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cell* proc);
-static const Cell* cell_apply_native(US* us, const Cell* cell, Env* env, const Cell* proc);
-static const Cell* cell_set_value(US* us, const Cell* cell, Env* env, int create);
-static const Cell* cell_if(US* us, const Cell* cell, Env* env);
-static const Cell* cell_lambda(US* us, const Cell* cell, Env* env);
-static int gather_args(const Cell* cell, int wanted, Cell* args[]);
+static Cell* cell_quote(US* us, Cell* cell);  // no need for env
+static Cell* cell_symbol(US* us, Cell* cell, Env* env);
+static Cell* cell_apply(US* us, Cell* cell, Env* env);
+static Cell* cell_apply_proc(US* us, Cell* cell, Env* env, Cell* proc);
+static Cell* cell_apply_native(US* us, Cell* cell, Env* env, Cell* proc);
+static Cell* cell_set_value(US* us, Cell* cell, Env* env, int create);
+static Cell* cell_if(US* us, Cell* cell, Env* env);
+static Cell* cell_lambda(US* us, Cell* cell, Env* env);
+static int gather_args(Cell* cell, int wanted, Cell* args[]);
 
-const Cell* cell_eval(US* us, const struct Cell* cell, struct Env* env)
+Cell* cell_eval(US* us, Cell* cell, Env* env)
 {
     if (cell->tag == CELL_SYMBOL) {
         // a symbol => get it from the environment
-        return cell_symbol(cell, env);
+        return cell_symbol(us, cell, env);
     }
 
     if (cell->tag != CELL_CONS) {
-        return cell;
         // anything not a cons => self-evaluating
+        return cell;
     }
 
-
     // we know for sure we have a cons cell
-    const Cell* car = cell->cons.car;
+    Cell* car = cell->cons.car;
     LOG(DEBUG, ("EVAL: evaluating a cons cell, car is %s", cell_dump(car, 1, dumper)));
 
     // is it a special form?
     if (car->tag == CELL_SYMBOL) {
         if (strcmp(car->sval, EVAL_QUOTE) == 0) {
             // a quote special form
-            return cell_quote(cell);
+            return cell_quote(us, cell);
         }
         if (strcmp(car->sval, EVAL_DEFINE) == 0) {
             // a define special form
@@ -75,9 +79,10 @@ const Cell* cell_eval(US* us, const struct Cell* cell, struct Env* env)
 }
 
 // Eval a symbol cell
-static const Cell* cell_symbol(const Cell* cell, Env* env)
+static Cell* cell_symbol(US* us, Cell* cell, Env* env)
 {
-    const Cell* ret = nil;
+    (void) us;
+    Cell* ret = nil;
     LOG(INFO, ("EVAL: looking up symbol [%s] in env %p", cell->sval, env));
     Symbol* sym = env_lookup(env, cell->sval, 0);
     if (sym) {
@@ -88,8 +93,9 @@ static const Cell* cell_symbol(const Cell* cell, Env* env)
 }
 
 // Execute a quote special form
-static const Cell* cell_quote(const Cell* cell)
+static Cell* cell_quote(US* us, Cell* cell)
 {
+    (void) us;
     Cell* ret = nil;
     Cell* args[2];
     if (gather_args(cell, 2, args)) {
@@ -100,10 +106,10 @@ static const Cell* cell_quote(const Cell* cell)
 }
 
 // Apply a function (car) to all its arguments (cdr)
-static const Cell* cell_apply(US* us, const Cell* cell, Env* env)
+static Cell* cell_apply(US* us, Cell* cell, Env* env)
 {
     Cell* ret = 0;
-    const Cell* proc = cell_eval(us, cell->cons.car, env);
+    Cell* proc = cell_eval(us, cell->cons.car, env);
     if (proc) {
         switch (proc->tag) {
             case CELL_PROC:
@@ -121,11 +127,11 @@ static const Cell* cell_apply(US* us, const Cell* cell, Env* env)
     return ret;
 }
 
-static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cell* proc)
+static Cell* cell_apply_proc(US* us, Cell* cell, Env* env, Cell* proc)
 {
     int pos = 0;
-    const Cell* p = 0; // pointer to current parameter
-    const Cell* a = 0; // pointer to current argument
+    Cell* p = 0; // pointer to current parameter
+    Cell* a = 0; // pointer to current argument
     Cell* ret = 0;
 
     // count how many arguments we have
@@ -146,7 +152,7 @@ static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cel
          p && p != nil && a && a != nil;
          p = p->cons.cdr, a = a->cons.cdr, ++pos) {
         LOG(INFO, ("So far, params is %s", cell_dump(p, 1, dumper)));
-        const Cell* par = p->cons.car;
+        Cell* par = p->cons.car;
         if (!par) {
             LOG(ERROR, ("Could not get parameter #%d", pos));
             ok = 0;
@@ -154,7 +160,7 @@ static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cel
         }
         LOG(INFO, ("Got parameter #%d: %s", pos, cell_dump(par, 1, dumper)));
         // we eval each arg in the caller's environment
-        const Cell* arg = cell_eval(us, a->cons.car, env);
+        Cell* arg = cell_eval(us, a->cons.car, env);
         if (!arg) {
             LOG(ERROR, ("Could not evaluate arg #%d [%s]", pos, par->sval));
             ok = 0;
@@ -185,12 +191,12 @@ static const Cell* cell_apply_proc(US* us, const Cell* cell, Env* env, const Cel
     return ret;
 }
 
-static const Cell* cell_apply_native(US* us, const Cell* cell, Env* env, const Cell* proc)
+static Cell* cell_apply_native(US* us, Cell* cell, Env* env, Cell* proc)
 {
     // We create a new list with all evaled args
-    const Cell* a = 0; // pointer to current argument
+    Cell* a = 0; // pointer to current argument
     Expression exp;
-    PARSER_EXP_RESET(exp);
+    LIST_RESET(exp);
     Cell* ret = 0;
     LOG(INFO, ("EVAL: native [%s] on %s", proc->nval.label, cell_dump(cell, 1, dumper)));
     int pos = 0;
@@ -199,14 +205,14 @@ static const Cell* cell_apply_native(US* us, const Cell* cell, Env* env, const C
          a && a != nil;
          a = a->cons.cdr, ++pos) {
         // we eval each arg in the caller's environment
-        const Cell* arg = cell_eval(us, a->cons.car, env);
+        Cell* arg = cell_eval(us, a->cons.car, env);
         if (!arg) {
             LOG(ERROR, ("Native, could not evaluate arg #%d for [%s]", pos, proc->nval.label));
             ok = 0;
             break;
         }
         Cell* cons = cell_cons(us, arg, nil);
-        PARSER_EXP_APPEND(&exp, cons);
+        LIST_APPEND(&exp, cons);
         LOG(INFO, ("Native, arg #%d for [%s] is %s", pos, proc->nval.label, cell_dump(arg, 1, dumper)));
     }
 
@@ -224,7 +230,7 @@ static const Cell* cell_apply_native(US* us, const Cell* cell, Env* env, const C
 
 // Set a value in the given environment;
 // optionally create it if it doesn't exist.
-static const Cell* cell_set_value(US* us, const Cell* cell, Env* env, int create)
+static Cell* cell_set_value(US* us, Cell* cell, Env* env, int create)
 {
     Cell* ret = 0;
     Cell* args[3];
@@ -247,7 +253,7 @@ static const Cell* cell_set_value(US* us, const Cell* cell, Env* env, int create
 }
 
 // Execute an if special form
-static const Cell* cell_if(US* us, const Cell* cell, Env* env)
+static Cell* cell_if(US* us, Cell* cell, Env* env)
 {
     Cell* ret = 0;
     Cell* args[4];
@@ -256,7 +262,7 @@ static const Cell* cell_if(US* us, const Cell* cell, Env* env)
         LOG(DEBUG, ("EVAL: if ? %s", cell_dump(args[2], 1, dumper)));
         LOG(DEBUG, ("EVAL: if : %s", cell_dump(args[3], 1, dumper)));
 
-        const Cell* tst = cell_eval(us, args[1], env);
+        Cell* tst = cell_eval(us, args[1], env);
         ret = cell_eval(us, tst == bool_t ? args[2] : args[3], env);
         LOG(DEBUG, ("EVAL: if => %s", cell_dump(ret, 1, dumper)));
     }
@@ -267,7 +273,7 @@ static const Cell* cell_if(US* us, const Cell* cell, Env* env)
 }
 
 // Execute a lambda special form
-static const Cell* cell_lambda(US* us, const Cell* cell, Env* env)
+static Cell* cell_lambda(US* us, Cell* cell, Env* env)
 {
     Cell* ret = 0;
     Cell* args[3];
@@ -286,10 +292,10 @@ static const Cell* cell_lambda(US* us, const Cell* cell, Env* env)
     return ret;
 }
 
-static int gather_args(const Cell* cell, int wanted, Cell* args[])
+static int gather_args(Cell* cell, int wanted, Cell* args[])
 {
     int pos = 0;
-    for (const Cell* c = cell; c && c != nil && pos < wanted; c = c->cons.cdr) {
+    for (Cell* c = cell; c && c != nil && pos < wanted; c = c->cons.cdr) {
         args[pos] = (Cell*) c->cons.car;
         if (!args[pos]) {
             return 0;

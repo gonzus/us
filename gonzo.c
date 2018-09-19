@@ -9,7 +9,7 @@
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
 
-static void test_arena(US* us)
+static void test_arena(void)
 {
     static struct {
         int bits[5];
@@ -208,26 +208,26 @@ static void test_reals(US* us)
 
 static void test_simple_list(US* us)
 {
-    const Cell* c = cell_cons(us, cell_create_int(us, 1),
-                        cell_cons(us, cell_create_int(us, 2),
-                                  cell_cons(us, cell_create_int(us, 3), nil)));
+    Cell* c = cell_cons(us, cell_create_int(us, 1),
+                  cell_cons(us, cell_create_int(us, 2),
+                            cell_cons(us, cell_create_int(us, 3), nil)));
     test_cell("simple_list", c, "(1 2 3)");
 }
 
 static void test_nested_list(US* us)
 {
-    const Cell* c23 = cell_cons(us, cell_create_int(us, 2),
-                          cell_cons(us, cell_create_int(us, 3), nil));
-    const Cell* c = cell_cons(us, cell_create_int(us, 1),
-                        cell_cons(us, c23,
-                                  cell_cons(us, cell_create_int(us, 4), nil)));
+    Cell* c23 = cell_cons(us, cell_create_int(us, 2),
+                    cell_cons(us, cell_create_int(us, 3), nil));
+    Cell* c = cell_cons(us, cell_create_int(us, 1),
+                  cell_cons(us, c23,
+                            cell_cons(us, cell_create_int(us, 4), nil)));
     test_cell("nested_list", c, "(1 (2 3) 4)");
 }
 
 static void test_dotted_list(US* us)
 {
-    const Cell* c = cell_cons(us, cell_create_int(us, 1),
-                        cell_create_int(us, 2));
+    Cell* c = cell_cons(us, cell_create_int(us, 1),
+                  cell_create_int(us, 2));
     test_cell("dotted_list", c, "(1 . 2)");
 }
 
@@ -264,7 +264,7 @@ static void test_symbol(US* us)
         }
 
         const long value = 11;
-        const Cell* c = cell_create_int(us, value);
+        Cell* c = cell_create_int(us, value);
         if (c) {
             printf("ok symbol created cell [%ld]\n", c->ival);
         }
@@ -605,7 +605,7 @@ int main(int argc, char* argv[])
 
     US* us = us_create();
 
-    test_arena(us);
+    test_arena();
     test_globals();
     test_strings(us);
     test_integers(us);
