@@ -5,12 +5,7 @@
 #include "env.h"
 #include "parser.h"
 #include "eval.h"
-//
-// #if !defined(MEM_DEBUG)
-// #define MEM_DEBUG 0
-// #endif
-// #include "mem.h"
-//
+
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
 #if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_DEBUG
@@ -277,9 +272,9 @@ static Cell* cell_lambda(US* us, Cell* cell, Env* env)
         LOG(DEBUG, ("EVAL: lambda args %s", cell_dump(args[1], 1, dumper)));
         LOG(DEBUG, ("EVAL: lambda body %s", cell_dump(args[2], 1, dumper)));
 
-        // This is where lexical scope happens: we keep the environment that was
-        // extant at the time of the lambda *creation*, as opposed to its *usage*
-        // (the latter would be dynamic scope).
+        // This is where lexical scope happens: we keep the environment that
+        // was extant at the time of the lambda *creation*, as opposed to its
+        // *usage* (the latter would be dynamic scope).
         ret = cell_create_procedure(us, args[1], args[2], env);
     }
     if (!ret) {

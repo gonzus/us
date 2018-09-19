@@ -14,11 +14,6 @@
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
 
-typedef struct NativeData {
-    const char* name;
-    NativeFunc* func;
-} NativeData;
-
 static Env* make_global_env(US* us);
 static void mark_cell(US* us, const Cell* cell);
 static void mark_env(US* us, Env* env);
@@ -135,7 +130,10 @@ void us_repl(US* us)
 
 static Env* make_global_env(US* us)
 {
-    NativeData data[] = {
+    struct {
+        const char* name;
+        NativeFunc* func;
+    } data[] = {
         { "+"       , func_add   },
         { "-"       , func_sub   },
         { "*"       , func_mul   },

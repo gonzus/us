@@ -82,11 +82,10 @@ void arena_destroy(Arena* arena)
 }
 
 // NOTE: from man page for fls:
-// The ffs(), ffsl() and ffsll() functions find the first (least
-// significant) bit set in value and return the index of that bit.
-// Bits are numbered starting at 1, the least significant bit.  A
-// return value of zero from any of these functions means that the
-// argument was zero.
+// The ffs(), ffsl() and ffsll() functions find the first (least significant)
+// bit set in value and return the index of that bit.  Bits are numbered
+// starting at 1, the least significant bit.  A return value of zero from any
+// of these functions means that the argument was zero.
 
 Cell* arena_get_cell(Arena* arena, int hint)
 {

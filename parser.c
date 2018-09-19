@@ -200,8 +200,8 @@ static int token(US* us, Parser* parser, int token)
             break;
     }
 
-    // There are some degenerate cases that are recognized
-    // as numbers, but should really be symbols.
+    // There are some degenerate cases that are recognized as numbers, but
+    // should really be symbols.
     if (len == 1 &&
         (token == TOKEN_INT ||
          token == TOKEN_REAL) &&
