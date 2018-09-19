@@ -497,9 +497,7 @@ static void test_eval_simple(US* us)
         const char* expected = data[j].expected;
         Cell* c = us_eval_str(us, code);
         test_cell("eval_simple", c, expected);
-        arena_dump(us->arena, stderr);
         us_gc(us);
-        arena_dump(us->arena, stderr);
     }
 }
 
@@ -563,14 +561,13 @@ static void test_eval_complex(US* us)
         { "5", " (fib 5) " },
         { "13", " (fib 7) " },
         { "55", " (fib 10) " },
-#if 0
         { "6765", " (fib 20) " },
-        { "(0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181)", "(map fib (range 0 20))" },
-#endif
+
         { "<*CODE*>", "(define range (lambda (a b) (if (= a b) (quote ()) (cons a (range (+ a 1) b)))))" },
         { "(0 1 2 3 4 5 6 7 8 9)", "(range 0 10)" },
         { "<*CODE*>", "(define map (lambda (f l) (if (null? l) nil (cons (f (car l)) (map f (cdr l))))))" },
         { "(0 1 1 2 3 5 8 13 21 34)", "(map fib (range 0 10))" },
+        { "(0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181)", "(map fib (range 0 20))" },
 
         { "bofur", " (car (quote (bofur bombur))) " },
         { "(bombur)", " (cdr (quote (bofur bombur))) " },
@@ -589,12 +586,9 @@ static void test_eval_complex(US* us)
     for (int j = 0; j < n; ++j) {
         const char* code = data[j].code;
         const char* expected = data[j].expected;
-        arena_dump(us->arena, stderr);
         Cell* c = us_eval_str(us, code);
         test_cell("eval_complex", c, expected);
-        arena_dump(us->arena, stderr);
         us_gc(us);
-        arena_dump(us->arena, stderr);
     }
 }
 

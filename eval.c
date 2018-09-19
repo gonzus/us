@@ -13,7 +13,7 @@
 //
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
-#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_INFO
+#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_DEBUG
 static char dumper[10*1024];
 #endif
 
@@ -83,12 +83,12 @@ static Cell* cell_symbol(US* us, Cell* cell, Env* env)
 {
     (void) us;
     Cell* ret = nil;
-    LOG(INFO, ("EVAL: looking up symbol [%s] in env %p", cell->sval, env));
+    LOG(DEBUG, ("EVAL: looking up symbol [%s] in env %p", cell->sval, env));
     Symbol* sym = env_lookup(env, cell->sval, 0);
     if (sym) {
         ret = sym->value;
     }
-    LOG(INFO, ("EVAL: looked up symbol [%s] in env %p => %s", cell->sval, env, cell_dump(ret, 1, dumper)));
+    LOG(DEBUG, ("EVAL: looked up symbol [%s] in env %p => %s", cell->sval, env, cell_dump(ret, 1, dumper)));
     return ret;
 }
 
@@ -142,23 +142,20 @@ static Cell* cell_apply_proc(US* us, Cell* cell, Env* env, Cell* proc)
 
     // We create a new small-ish environment where we can bind all evaled args
     // in fresh slots for the params (see *COMMENT* below)
-    Env* envtje = arena_get_env(us->arena, pos + 1);
-    LOG(INFO, ("--- GOT LOCAL %p ---", envtje));
-    LOG(INFO, ("--- LOCAL SIZE %d ---", envtje->size));
-    LOG(INFO, ("EVAL: proc with %d args: %s", pos, cell_dump(proc, 1, dumper)));
-    LOG(INFO, ("EVAL: proc on: %s", cell_dump(cell, 1, dumper)));
+    Env* local = arena_get_env(us->arena, pos + 1);
+    LOG(DEBUG, ("EVAL: proc with %d args: %s", pos, cell_dump(proc, 1, dumper)));
+    LOG(DEBUG, ("EVAL: proc on: %s", cell_dump(cell, 1, dumper)));
     int ok = 1;
     for (p = proc->pval.params, a = cell->cons.cdr, pos= 0;
          p && p != nil && a && a != nil;
          p = p->cons.cdr, a = a->cons.cdr, ++pos) {
-        LOG(INFO, ("So far, params is %s", cell_dump(p, 1, dumper)));
         Cell* par = p->cons.car;
         if (!par) {
             LOG(ERROR, ("Could not get parameter #%d", pos));
             ok = 0;
             break;
         }
-        LOG(INFO, ("Got parameter #%d: %s", pos, cell_dump(par, 1, dumper)));
+        LOG(DEBUG, ("Got parameter #%d: %s", pos, cell_dump(par, 1, dumper)));
         // we eval each arg in the caller's environment
         Cell* arg = cell_eval(us, a->cons.car, env);
         if (!arg) {
@@ -166,9 +163,9 @@ static Cell* cell_apply_proc(US* us, Cell* cell, Env* env, Cell* proc)
             ok = 0;
             break;
         }
-        LOG(INFO, ("Evaluated arg #%d [%s]", pos, par->sval));
+        LOG(DEBUG, ("Evaluated arg #%d [%s]", pos, par->sval));
         // now we create a symbol with the correct name=value association
-        Symbol* sym = env_lookup(envtje, par->sval, 1);
+        Symbol* sym = env_lookup(local, par->sval, 1);
         if (!sym) {
             LOG(ERROR, ("Could not create binding for arg #%d [%s]", pos, par->sval));
             ok = 0;
@@ -179,11 +176,11 @@ static Cell* cell_apply_proc(US* us, Cell* cell, Env* env, Cell* proc)
     }
     // *COMMENT* only *now* we chain our local env with its parent, which is
     // the env that we captured when the lamdba was created.
-    env_chain(envtje, proc->pval.env);
+    env_chain(local, proc->pval.env);
 
     if (ok) {
         // finally eval the proc body in this newly created env
-        ret = cell_eval(us, proc->pval.body, envtje);
+        ret = cell_eval(us, proc->pval.body, local);
     }
     if (!ret) {
         ret = nil;
@@ -198,7 +195,7 @@ static Cell* cell_apply_native(US* us, Cell* cell, Env* env, Cell* proc)
     Expression exp;
     LIST_RESET(exp);
     Cell* ret = 0;
-    LOG(INFO, ("EVAL: native [%s] on %s", proc->nval.label, cell_dump(cell, 1, dumper)));
+    LOG(DEBUG, ("EVAL: native [%s] on %s", proc->nval.label, cell_dump(cell, 1, dumper)));
     int pos = 0;
     int ok = 1;
     for (a = cell->cons.cdr;
@@ -213,18 +210,17 @@ static Cell* cell_apply_native(US* us, Cell* cell, Env* env, Cell* proc)
         }
         Cell* cons = cell_cons(us, arg, nil);
         LIST_APPEND(&exp, cons);
-        LOG(INFO, ("Native, arg #%d for [%s] is %s", pos, proc->nval.label, cell_dump(arg, 1, dumper)));
+        LOG(DEBUG, ("Native, arg #%d for [%s] is %s", pos, proc->nval.label, cell_dump(arg, 1, dumper)));
     }
 
     // finally eval the proc function with its args
     if (ok) {
-        LOG(INFO, ("Native, calling with args %s", cell_dump(exp.frst, 1, dumper)));
+        LOG(DEBUG, ("Native, calling with args %s", cell_dump(exp.frst, 1, dumper)));
         ret = proc->nval.func(us, exp.frst);
     }
     if (!ret) {
         ret = nil;
     }
-    LOG(INFO, ("native: returning"));
     return ret;
 }
 
@@ -235,7 +231,7 @@ static Cell* cell_set_value(US* us, Cell* cell, Env* env, int create)
     Cell* ret = 0;
     Cell* args[3];
     if (gather_args(cell, 3, args)) {
-        LOG(INFO, ("EVAL: %s value for [%s] to %s", create ? "define" : "set", args[1]->sval, cell_dump(args[2], 1, dumper)));
+        LOG(DEBUG, ("EVAL: %s value for [%s] to %s", create ? "define" : "set", args[1]->sval, cell_dump(args[2], 1, dumper)));
         Symbol* sym = env_lookup(env, args[1]->sval, create);
         if (!sym) {
             LOG(ERROR, ("EVAL: symbol [%s] not found", args[1]->sval));
@@ -243,7 +239,7 @@ static Cell* cell_set_value(US* us, Cell* cell, Env* env, int create)
         else {
             ret = cell_eval(us, args[2], env);
             sym->value = ret;
-            LOG(INFO, ("Setting value [%s] to %s", args[1]->sval, cell_dump(ret, 1, dumper)));
+            LOG(DEBUG, ("Setting value [%s] to %s", args[1]->sval, cell_dump(ret, 1, dumper)));
         }
     }
     if (!ret) {
@@ -278,8 +274,8 @@ static Cell* cell_lambda(US* us, Cell* cell, Env* env)
     Cell* ret = 0;
     Cell* args[3];
     if (gather_args(cell, 3, args)) {
-        LOG(INFO, ("EVAL: lambda args %s", cell_dump(args[1], 1, dumper)));
-        LOG(INFO, ("EVAL: lambda body %s", cell_dump(args[2], 1, dumper)));
+        LOG(DEBUG, ("EVAL: lambda args %s", cell_dump(args[1], 1, dumper)));
+        LOG(DEBUG, ("EVAL: lambda body %s", cell_dump(args[2], 1, dumper)));
 
         // This is where lexical scope happens: we keep the environment that was
         // extant at the time of the lambda *creation*, as opposed to its *usage*

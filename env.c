@@ -55,7 +55,7 @@ void env_chain(Env* env, Env* parent)
     }
 
     env->parent = parent;
-    LOG(INFO, ("ENV: chained %p to parent %p", env, env->parent));
+    LOG(DEBUG, ("ENV: chained %p to parent %p", env, env->parent));
 }
 
 Symbol* env_lookup(Env* env, const char* name, int create)
@@ -83,7 +83,7 @@ Symbol* env_lookup(Env* env, const char* name, int create)
         MEM_ALLOC_STRDUP(sym->name, name);
         sym->next = env->table[h];
         env->table[h] = sym;
-        LOG(INFO, ("Created sym [%s]", name));
+        LOG(DEBUG, ("Created sym [%s]", name));
     }
 
     // Return what we got, if anything

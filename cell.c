@@ -11,7 +11,7 @@
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
-#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_INFO
+#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_DEBUG
 static char dumper[10*1024];
 #endif
 
@@ -34,7 +34,7 @@ static int cell_print_all(const Cell* cell, char* buf);
 void cell_destroy(US* us, Cell* cell)
 {
     (void) us;
-    LOG(INFO, ("CELL: destroying %p tag %d", cell, cell->tag));
+    LOG(DEBUG, ("CELL: destroying %p tag %d", cell, cell->tag));
     switch (cell->tag) {
         case CELL_STRING:
         case CELL_SYMBOL:
@@ -52,7 +52,7 @@ Cell* cell_create_int(US* us, long value)
 {
     Cell* cell = cell_build(us, CELL_INT);
     cell->ival = value;
-    LOG(INFO, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
+    LOG(DEBUG, ("CELL: created %p [%s]", cell, cell_dump(cell, 1, dumper)));
     return cell;
 }
 

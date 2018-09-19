@@ -51,19 +51,19 @@ static void mark_cell(US* us, const Cell* cell)
         return;
     }
     if (arena_is_cell_used(us->arena, cell)) {
-        fprintf(stderr, "=== MARKING cell already marked\n");
+        LOG(DEBUG, ("=== MARKING cell already marked"));
         return;
     }
-    fprintf(stderr, "=== MARKING cell\n");
+    LOG(DEBUG, ("=== MARKING cell"));
     arena_mark_cell_used(us->arena, cell);
     switch (cell->tag) {
         case CELL_CONS:
-            fprintf(stderr, "=== MARKING cell cons\n");
+            LOG(DEBUG, ("=== MARKING cell cons"));
             mark_cell(us, cell->cons.car);
             mark_cell(us, cell->cons.cdr);
             break;
         case CELL_PROC:
-            fprintf(stderr, "=== MARKING cell proc\n");
+            LOG(DEBUG, ("=== MARKING cell proc"));
             mark_cell(us, cell->pval.params);
             mark_cell(us, cell->pval.body);
             mark_env(us, cell->pval.env);
@@ -77,10 +77,10 @@ static void mark_env(US* us, Env* env)
         return;
     }
     if (arena_is_env_used(us->arena, env)) {
-        fprintf(stderr, "=== MARKING env already marked\n");
+        LOG(DEBUG, ("=== MARKING env already marked"));
         return;
     }
-    fprintf(stderr, "=== MARKING env\n");
+    LOG(DEBUG, ("=== MARKING env"));
     arena_mark_env_used(us->arena, env);
     for (int j = 0; j < env->size; ++j) {
         for (Symbol* sym = env->table[j]; sym; sym = sym->next) {
@@ -104,27 +104,14 @@ Cell* us_eval_str(US* us, const char* code)
 {
     parser_parse(us, us->parser, code);
     Cell* c = parser_result(us->parser);
-    LOG(INFO, ("=== parsed ==="));
+    LOG(DEBUG, ("=== parsed ==="));
     if (!c) {
         LOG(WARNING, ("Could not eval code [%s]", code));
         return 0;
     }
 
-#if 0
-    cell_print(c, stderr, 1);
-#endif
-
-    Cell* r = 0;
-
-#if 1
-    r = cell_eval(us, c, us->env);
-    LOG(INFO, ("=== evaled ==="));
-#endif
-
-#if 0
-    printf("[%p] => ", r);
-    cell_print(r, stderr, 1);
-#endif
+    Cell* r = cell_eval(us, c, us->env);
+    LOG(DEBUG, ("=== evaled ==="));
 
     return r;
 }
@@ -138,20 +125,11 @@ void us_repl(US* us)
         if (!fgets(buf, 1024, stdin)) {
             break;
         }
-#if 0
-        printf("--> WILL PARSE: [%s]\n", buf);
-        fflush(stdout);
-#endif
         parser_parse(us, us->parser, buf);
         Cell* c = parser_result(us->parser);
         if (!c) {
             continue;
         }
-
-#if 0
-        printf("==> EVAL: ");
-        cell_print(c, stdout, 1);
-#endif
 
         const Cell* r = cell_eval(us, c, us->env);
         cell_print(r, stdout, 1);
@@ -180,7 +158,7 @@ static Env* make_global_env(US* us)
         const char* name = data[j].name;
         Symbol* sym = env_lookup(env, name, 1);
         sym->value = cell_create_native(us, name, data[j].func);
-        LOG(DEBUG, ("US: registered native handler for [%s]", name));
+        LOG(INFO, ("US: registered native handler for [%s]", name));
     }
     LOG(INFO, ("US: registered all %d native handlers, us %p, arena %p", n, us, us->arena));
     arena_dump(us->arena, stderr);

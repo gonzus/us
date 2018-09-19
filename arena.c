@@ -1,10 +1,17 @@
 #include <stdlib.h>
 #include <strings.h>
-#include "mem.h"
 #include "arena.h"
 
-#define LOG_LEVEL LOG_LEVEL_DEBUG
+#if !defined(MEM_DEBUG)
+#define MEM_DEBUG 0
+#endif
+#include "mem.h"
+
+// #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
+#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_DEBUG
+static char dumper[10*1024];
+#endif
 
 Arena* arena_create(void)
 {
@@ -41,17 +48,22 @@ static void env_cleanup(Env* env)
 
 void arena_destroy(Arena* arena)
 {
+    int count = 0;
     LOG(INFO, ("arena: destroying arena %p", arena));
-    arena_dump(arena, stderr);
+    count = 0;
     for (CellPool* pool = arena->cells; pool; ) {
         for (unsigned long j = 0; j < ARENA_POOL_SIZE; ++j) {
             cell_cleanup(&pool->slots[j]);
         }
         CellPool* tmp = pool;
         pool = pool->next;
-        LOG(INFO, ("arena: destroying cell pool %p", tmp));
+        LOG(DEBUG, ("arena: destroying cell pool %p", tmp));
         MEM_FREE_TYPE(tmp, 1, CellPool);
+        ++count;
     }
+    LOG(INFO, ("arena: destroyed %d cell pools, %lu bytes", count, (unsigned long) (count * sizeof(CellPool))));
+
+    count = 0;
     for (EnvPool* pool = arena->envs; pool; ) {
         for (unsigned long j = 0; j < ARENA_POOL_SIZE; ++j) {
             Env* env = &pool->slots[j];
@@ -60,9 +72,12 @@ void arena_destroy(Arena* arena)
         }
         EnvPool* tmp = pool;
         pool = pool->next;
-        LOG(INFO, ("arena: destroying env pool %p", tmp));
+        LOG(DEBUG, ("arena: destroying env pool %p", tmp));
         MEM_FREE_TYPE(tmp, 1, EnvPool);
+        ++count;
     }
+    LOG(INFO, ("arena: destroyed %d env pools, %lu bytes", count, (unsigned long) (count * sizeof(EnvPool))));
+
     MEM_FREE_TYPE(arena, 1, Arena);
 }
 
@@ -91,7 +106,7 @@ Cell* arena_get_cell(Arena* arena, int hint)
     if (!pool) {
         // Need to create a new cell pool
         MEM_ALLOC_TYPE(pool, 1, CellPool);
-        LOG(INFO, ("arena: created cell pool %p", pool));
+        LOG(DEBUG, ("arena: created cell pool %p", pool));
         pool->mask = POOL_EMPTY;
         pool->next = arena->cells;
         arena->cells = pool;
@@ -124,7 +139,7 @@ Env* arena_get_env(Arena* arena, int hint)
     if (!pool) {
         // Need to create a new pool
         MEM_ALLOC_TYPE(pool, 1, EnvPool);
-        LOG(INFO, ("arena: created env pool %p", pool));
+        LOG(DEBUG, ("arena: created env pool %p", pool));
         pool->mask = POOL_EMPTY;
         pool->next = arena->envs;
         arena->envs = pool;
@@ -136,16 +151,14 @@ Env* arena_get_env(Arena* arena, int hint)
 
     Env* env = &pool->slots[pos];
     env_cleanup(env);
-    LOG(INFO, ("--- USING ENV %p pos %d ---", env, pos));
     if (env->size) {
-        LOG(INFO, ("ARENA - ENV: reusing %p, %d buckets at %p", env, env->size, env->table));
+        LOG(DEBUG, ("ARENA - ENV: reusing %p, %d buckets at %p", env, env->size, env->table));
     }
     else {
         env->size = hint ? hint : 1021;
         MEM_ALLOC_TYPE(env->table, env->size, Symbol*);
-        LOG(INFO, ("ARENA - ENV: created %p, %d buckets at %p", env, env->size, env->table));
+        LOG(DEBUG, ("ARENA - ENV: created %p, %d buckets at %p", env, env->size, env->table));
     }
-    LOG(INFO, ("--- RETURNING ENV %p ---", env));
     return env;
 }
 
@@ -185,10 +198,9 @@ void arena_mark_cell_used(Arena* arena, const Cell* cell)
     if (!pool) {
         return;
     }
-    char dumper[10*1024];
     int pos = cell - pool->slots;
     POOL_MARK_USED(pool->mask, pos);
-    fprintf(stderr, "== Marking cell as used %p -- %s\n", cell, cell_dump(cell, 1, dumper));
+    LOG(DEBUG, ("== Marking cell as used %p -- %s", cell, cell_dump(cell, 1, dumper)));
 }
 
 void arena_mark_env_used(Arena* arena, const Env* env)
@@ -199,15 +211,7 @@ void arena_mark_env_used(Arena* arena, const Env* env)
     }
     int pos = env - pool->slots;
     POOL_MARK_USED(pool->mask, pos);
-    fprintf(stderr, "== Marking env as used %p - [", env);
-    int count = 0;
-    for (int j = 0; j < env->size; ++j) {
-        for (Symbol* sym = env->table[j]; sym; sym = sym->next) {
-            fprintf(stderr, "%s%s", count ? ":" : "", sym->name);
-            ++count;
-        }
-    }
-    fprintf(stderr, "] (%d)\n", count);
+    LOG(DEBUG, ("== Marking env as used %p", env));
 }
 
 CellPool* arena_get_pool_for_cell(Arena* arena, const Cell* cell)
@@ -236,7 +240,10 @@ EnvPool* arena_get_pool_for_env(Arena* arena, const Env* env)
 
 void arena_dump(Arena* arena, FILE* fp)
 {
+    int count = 0;
     fprintf(fp, "=== Arena at %p\n", arena);
+
+    count = 0;
     for (CellPool* pool = arena->cells; pool; pool = pool->next) {
         int free = 0;
         for (unsigned long j = 0; j < ARENA_POOL_SIZE; ++j) {
@@ -245,8 +252,12 @@ void arena_dump(Arena* arena, FILE* fp)
                 ++free;
             }
         }
-        fprintf(fp, "===  CellPool at %p, free slots %d, mask %0*" PRIx64 "\n", pool, free, (int) (ARENA_POOL_SIZE * 2 / sizeof(uint64_t)), pool->mask);
+        ++count;
+        // fprintf(fp, "===  CellPool at %p, free slots %d, mask %0*" PRIx64 "\n", pool, free, (int) (ARENA_POOL_SIZE * 2 / sizeof(uint64_t)), pool->mask);
     }
+    fprintf(fp, "===  CellPool count: %d\n", count);
+
+    count = 0;
     for (EnvPool* pool = arena->envs; pool; pool = pool->next) {
         int free = 0;
         for (unsigned long j = 0; j < ARENA_POOL_SIZE; ++j) {
@@ -255,6 +266,8 @@ void arena_dump(Arena* arena, FILE* fp)
                 ++free;
             }
         }
-        fprintf(fp, "===  EnvPool at %p, free slots %d, mask %0*" PRIx64 "\n", pool, free, (int) (ARENA_POOL_SIZE * 2 / sizeof(uint64_t)), pool->mask);
+        ++count;
+        // fprintf(fp, "===  EnvPool at %p, free slots %d, mask %0*" PRIx64 "\n", pool, free, (int) (ARENA_POOL_SIZE * 2 / sizeof(uint64_t)), pool->mask);
     }
+    fprintf(fp, "===  EnvPool count: %d\n", count);
 }

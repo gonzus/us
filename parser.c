@@ -56,12 +56,13 @@ Parser* parser_create(int depth)
     MEM_ALLOC_TYPE(parser->exp, parser->depth, Expression);
 
     parser_reset(parser, 0);
+    LOG(INFO, ("created parser %p", parser));
     return parser;
 }
 
 void parser_destroy(Parser* parser)
 {
-    LOG(INFO, ("destroying parser"));
+    LOG(INFO, ("destroying parser %p", parser));
     parser_reset(parser, 0);
     MEM_FREE_TYPE(parser->exp, parser->depth, Expression);
     MEM_FREE_TYPE(parser, 1, Parser);
@@ -80,7 +81,6 @@ void parser_reset(Parser* parser, const char* str)
 Cell* parser_result(Parser* parser)
 {
     Cell* cell = parser->exp[0].frst;
-    LOG(INFO, ("Cell %p ref 1", cell));
     return cell;
 }
 
@@ -187,7 +187,7 @@ static const char* State[STATE_LAST] = {
     "STATE_SYMBOL",
 };
 #endif
-#if LOG_LEVEL <= LOG_LEVEL_INFO
+#if LOG_LEVEL <= LOG_LEVEL_DEBUG
 static const char* Token[TOKEN_LAST] = {
     "TOKEN_NONE",
     "TOKEN_INT",
@@ -224,10 +224,10 @@ static int token(US* us, Parser* parser, int token)
     }
 
     if (len > 0) {
-        LOG(INFO, ("%-15.15s: [%*.*s] (%d)", Token[token], len, len, tok, len));
+        LOG(DEBUG, ("%-15.15s: [%*.*s] (%d)", Token[token], len, len, tok, len));
     }
     else {
-        LOG(INFO, ("%-15.15s", Token[token]));
+        LOG(DEBUG, ("%-15.15s", Token[token]));
     }
 
     Cell* cell = 0;
@@ -278,14 +278,12 @@ static int token(US* us, Parser* parser, int token)
 
     Expression* exp = &parser->exp[parser->level];
     if (parser->level == 0) {
-        LOG(INFO, ("PARSE: storing level zero"));
         LIST_RESET(*exp);
         exp->frst = cell;
         return 0;
     }
 
     Cell* c = cell_cons(us, cell, nil);
-    LOG(INFO, ("PARSER: wrapped cell in cons"));
     LIST_APPEND(exp, c);
 
     return 0;

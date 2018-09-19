@@ -32,7 +32,6 @@
         if (!((e)->frst)) (e)->frst = x; \
         if ((e)->last) { \
             (e)->last->cons.cdr = x; \
-            LOG(INFO, ("APPENDED")); \
         } \
         (e)->last = x; \
     } while (0)
