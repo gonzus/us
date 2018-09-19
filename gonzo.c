@@ -109,8 +109,7 @@ static void test_arena(void)
         uint64_t last = p->mask;
         if (comp == last) {
             printf("ok %" POOL_MASK_FMT "\n", comp);
-        }
-        else {
+        } else {
             printf("BAD %" POOL_MASK_FMT " -- %" POOL_MASK_FMT "\n", comp, last);
         }
     }
@@ -124,8 +123,7 @@ static int test_cell(const char* label, const Cell* cell, const char* expected)
     int ok = strcmp(dumper, expected) == 0;
     if (ok) {
         printf("ok %s got [%s]\n", label, dumper);
-    }
-    else {
+    } else {
         printf("BAD %s got [%s], expected [%s]\n", label, dumper, expected);
     }
     return ok;
@@ -246,8 +244,7 @@ static void test_symbol(US* us)
         parent = env_create(0);
         if (parent) {
             printf("ok symbol created parent env\n");
-        }
-        else {
+        } else {
             printf("BAD symbol created parent env\n");
             break;
         }
@@ -257,8 +254,7 @@ static void test_symbol(US* us)
         Symbol* s1 = env_lookup(parent, name, 1);
         if (s1) {
             printf("ok symbol created sym [%s]\n", name);
-        }
-        else {
+        } else {
             printf("BAD symbol created sym [%s]\n", name);
             break;
         }
@@ -267,8 +263,7 @@ static void test_symbol(US* us)
         Cell* c = cell_create_int(us, value);
         if (c) {
             printf("ok symbol created cell [%ld]\n", c->ival);
-        }
-        else {
+        } else {
             printf("BAD symbol created cell [%ld] [%ld]\n", c->ival, value);
             break;
         }
@@ -278,8 +273,7 @@ static void test_symbol(US* us)
         Symbol* s2 = env_lookup(parent, name, 0);
         if (s2) {
             printf("ok symbol fetched sym [%s]\n", name);
-        }
-        else {
+        } else {
             printf("BAD symbol fetched sym [%s]\n", name);
             break;
         }
@@ -287,8 +281,7 @@ static void test_symbol(US* us)
         child = env_create(0);
         if (child) {
             printf("ok symbol created child env\n");
-        }
-        else {
+        } else {
             printf("BAD symbol created child env\n");
             break;
         }
@@ -298,16 +291,14 @@ static void test_symbol(US* us)
         Symbol* s3 = env_lookup(child, name, 0);
         if (s3) {
             printf("ok symbol fetched sym [%s]\n", name);
-        }
-        else {
+        } else {
             printf("BAD symbol fetched sym [%s]\n", name);
             break;
         }
 
         if (s3->value == c) {
             printf("ok symbol values match [%ld]\n", s3->value->ival);
-        }
-        else {
+        } else {
             printf("BAD symbol values match [%ld] [%ld]\n", s3->value->ival, value);
             break;
         }

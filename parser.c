@@ -213,8 +213,7 @@ static int token(US* us, Parser* parser, int token)
 
     if (len > 0) {
         LOG(DEBUG, ("%-15.15s: [%*.*s] (%d)", Token[token], len, len, tok, len));
-    }
-    else {
+    } else {
         LOG(DEBUG, ("%-15.15s", Token[token]));
     }
 

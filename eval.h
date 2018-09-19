@@ -6,8 +6,7 @@ struct US;
 struct Cell;
 struct Env;
 
-// Eval the expresion contained in a cell, given a specific environment.
-// Magic happens here!
+// Eval the expresion in a cell, given a specific environment. Magic!
 Cell* cell_eval(struct US* us, struct Cell* cell, struct Env* env);
 
 #endif

@@ -9,9 +9,6 @@
 
 // #define LOG_LEVEL LOG_LEVEL_DEBUG
 #include "log.h"
-#if defined(LOG_LEVEL) && LOG_LEVEL <= LOG_LEVEL_DEBUG
-static char dumper[10*1024];
-#endif
 
 Arena* arena_create(void)
 {
@@ -152,8 +149,7 @@ Env* arena_get_env(Arena* arena, int hint)
     env_cleanup(env);
     if (env->size) {
         LOG(DEBUG, ("ARENA - ENV: reusing %p, %d buckets at %p", env, env->size, env->table));
-    }
-    else {
+    } else {
         env->size = hint ? hint : 1021;
         MEM_ALLOC_TYPE(env->table, env->size, Symbol*);
         LOG(DEBUG, ("ARENA - ENV: created %p, %d buckets at %p", env, env->size, env->table));
@@ -199,7 +195,6 @@ void arena_mark_cell_used(Arena* arena, const Cell* cell)
     }
     int pos = cell - pool->slots;
     POOL_MARK_USED(pool->mask, pos);
-    LOG(DEBUG, ("== Marking cell as used %p -- %s", cell, cell_dump(cell, 1, dumper)));
 }
 
 void arena_mark_env_used(Arena* arena, const Env* env)
@@ -210,7 +205,6 @@ void arena_mark_env_used(Arena* arena, const Env* env)
     }
     int pos = env - pool->slots;
     POOL_MARK_USED(pool->mask, pos);
-    LOG(DEBUG, ("== Marking env as used %p", env));
 }
 
 CellPool* arena_get_pool_for_cell(Arena* arena, const Cell* cell)

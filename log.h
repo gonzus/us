@@ -12,12 +12,6 @@
 #define LOG_LEVEL LOG_LEVEL_INFO
 #endif
 
-// #define LOG_LEVEL LOG_LEVEL_DEBUG
-// #define LOG_LEVEL LOG_LEVEL_INFO
-// #define LOG_LEVEL LOG_LEVEL_WARNING
-// #define LOG_LEVEL LOG_LEVEL_ERROR
-// #define LOG_LEVEL LOG_LEVEL_FATAL
-
 #if LOG_LEVEL <= LOG_LEVEL_DEBUG
 #define LOG_DEBUG(x) (log_where(__FILE__, __LINE__), log_debug x)
 #else

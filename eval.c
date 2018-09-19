@@ -230,8 +230,7 @@ static Cell* cell_set_value(US* us, Cell* cell, Env* env, int create)
         Symbol* sym = env_lookup(env, args[1]->sval, create);
         if (!sym) {
             LOG(ERROR, ("EVAL: symbol [%s] not found", args[1]->sval));
-        }
-        else {
+        } else {
             ret = cell_eval(us, args[2], env);
             sym->value = ret;
             LOG(DEBUG, ("Setting value [%s] to %s", args[1]->sval, cell_dump(ret, 1, dumper)));

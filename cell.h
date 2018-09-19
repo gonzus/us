@@ -5,8 +5,7 @@
 
 // A Cell stores any possible value (integer, conses, others) using a union.
 
-// Types of cell
-#define CELL_NONE   0  // Special value, nil uses it
+#define CELL_NONE   0  // Special cell, nil uses it
 #define CELL_INT    1  // Integers (stored as long)
 #define CELL_REAL   2  // Reals (stored as double)
 #define CELL_STRING 3  // Strings
@@ -114,6 +113,7 @@ Cell* cell_cdr(Cell* cell);
 // Print contents of cell to given stream, optionally adding a \n
 void cell_print(const Cell* cell, FILE* fp, int eol);
 
+// Dump cell
 const char* cell_dump(const Cell* cell, int debug, char* buf);
 
 #endif

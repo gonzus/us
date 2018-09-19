@@ -238,8 +238,7 @@ static int cell_printer(const Cell* cell, int debug, char* buf)
     }
     if (!cell) {
         pos += sprintf(buf + pos, "NULL");
-    }
-    else {
+    } else {
         if (debug) {
             const char* str = "???";
             if (cell->tag < CELL_LAST) {
@@ -252,8 +251,7 @@ static int cell_printer(const Cell* cell, int debug, char* buf)
         }
         if (cell->tag != CELL_CONS) {
             pos += cell_print_all(cell, buf + pos);
-        }
-        else {
+        } else {
             pos += sprintf(buf + pos, "(");
             pos += cell_print_all(cell, buf + pos);
             pos += sprintf(buf + pos, ")");
@@ -327,19 +325,16 @@ static int cell_print_all(const Cell* cell, char* buf)
                 pos += sprintf(buf + pos, "(");
                 pos += cell_print_all(cons->car, buf + pos);
                 pos += sprintf(buf + pos, ")");
-            }
-            else {
+            } else {
                 pos += cell_print_all(cons->car, buf + pos);
             }
 
             if (cons->cdr == nil) {
-                // end of list, nothing else to do
-            }
-            else if (cons->cdr->tag == CELL_CONS) {
+                // end of list, nothing more to do
+            } else if (cons->cdr->tag == CELL_CONS) {
                 pos += sprintf(buf + pos, " ");
                 pos += cell_print_all(cons->cdr, buf + pos);
-            }
-            else {
+            } else {
                 pos += sprintf(buf + pos, " . ");
                 pos += cell_print_all(cons->cdr, buf + pos);
             }

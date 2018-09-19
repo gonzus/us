@@ -7,11 +7,8 @@
 #include "cell.h"       // for struct Cell
 #include "env.h"        // for struct Env
 
-// basically, 64 bits
-#define ARENA_POOL_SIZE (8*sizeof(uint64_t))
-
-// a 1 bit in the pool mask indicates a free slot
-#define POOL_EMPTY      UINT64_MAX
+#define ARENA_POOL_SIZE (8*sizeof(uint64_t)) // basically, 64 bits
+#define POOL_EMPTY      UINT64_MAX // 1 bit in mask => a free slot
 #define POOL_MASK_FMT   PRIx64
 
 #define POOL_IS_USED(m, x)    (!((m) & (1ULL << x)))

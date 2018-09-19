@@ -24,6 +24,6 @@ this to be a bit more than your usual toy:
    instances of the interpreter to be alive at the same time in a program.
 
 This is the result of my work so far.  As of 19 September 2018, the code has
-1982 LOC.
+1952 LOC.
 
 Enjoy!

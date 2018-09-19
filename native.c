@@ -57,8 +57,7 @@ Cell* func_sub(US* us, Cell* args)
                 case CELL_REAL: rsaw = 1; rret = arg->rval; break;
                 default: ok = 0; break;
             }
-        }
-        else {
+        } else {
             switch (arg->tag) {
                 case CELL_INT : isaw = 1; iret -= arg->ival; break;
                 case CELL_REAL: rsaw = 1; rret -= arg->rval; break;
@@ -126,15 +125,13 @@ Cell* func_div(US* us, Cell* args)
                         // exact long division
                         iret = tmp;
                         break;
-                    }
-                    else {
+                    } else {
                         // switch to using reals
                         rret = (double) iret / (double) arg->ival;
                         isaw = 0;
                         rsaw = 1;
                     }
-                }
-                else {
+                } else {
                     rret /= (double) arg->ival;
                 }
                 break;
@@ -163,11 +160,9 @@ Cell* func_div(US* us, Cell* args)
         if (isaw) {
             if (iret == 0) {
                 ok = 0;
-            }
-            else if (iret == 1 || iret == -1) {
+            } else if (iret == 1 || iret == -1) {
                 // 1/n == n when n == 1 or n == -1; do nothing
-            }
-            else {
+            } else {
                 // switch to using reals
                 rret = 1.0 / (double) iret;
                 isaw = 0;
@@ -176,8 +171,7 @@ Cell* func_div(US* us, Cell* args)
         } else {
             if (rret == 0.0) {
                 ok = 0;
-            }
-            else {
+            } else {
                 rret = 1.0 / rret;
             }
         }

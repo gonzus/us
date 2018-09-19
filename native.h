@@ -7,6 +7,8 @@ struct Cell;
 
 // Native implementations of several procedures
 
+// Math operations.  These try to be clever when mixing integers and reals, but
+// it is rather messy...
 struct Cell* func_add(struct US* us, struct Cell* args);
 struct Cell* func_sub(struct US* us, struct Cell* args);
 struct Cell* func_mul(struct US* us, struct Cell* args);
